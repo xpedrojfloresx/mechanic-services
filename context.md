@@ -2,6 +2,15 @@
 
 ## Estado actual
 
+### >>> PRÓXIMA TAREA (pedida por Pedro, hacer ANTES de la Fase 6) <<<
+
+**Rediseño visual de toda la interfaz** usando estas tres skills, en este orden: `redesign-existing-projects` (auditar lo existente y detectar patrones genéricos), `design-taste-frontend` y `gpt-taste` (aplicar criterio de diseño). Cargarlas con la herramienta Skill (están en la lista de skills de la sesión). Alcance: **todas** las pantallas y componentes creados (login/recuperar contraseña, layout con menú lateral y barra inferior de celular, buscador global, Inicio, Recibir vehículo, Servicios y su ficha, Clientes y su ficha, Vehículo y su ficha, Recordatorios, formularios, tarjetas, estados vacíos, gráficos).
+Reglas para no romper el producto (de `CLAUDE.md` y de lo que pidió Pedro): mantener **simple, rápido y mobile-first** para un mecánico apurado; no agregar features nuevas; **no** meter animaciones pesadas ni librerías nuevas sin consultar (`gpt-taste` propone GSAP: adaptarlo o descartarlo, la app debe seguir liviana para la PWA); conservar el flujo actual (Recibir por patente, buscador global, avisos de entrega, "Más datos" plegado); textos en español rioplatense; verificar en navegador (escritorio y celular, con sesión falsa + datos inyectados en `queryClient`, ver abajo) y con `npm run build` / `npm run lint`. Pedro no vio nada de esto con datos reales todavía, así que **mostrarle antes/después** y commitear por partes chicas. `brandkit` (logos) NO usarla: Pedro dijo que no. Al terminar, recién ahí seguir con la **Fase 6 (PWA)**; para eso hace falta un logo/ícono de Pedro (los íconos del manifest están vacíos).
+Cómo probar sin loguearse (Claude no usa la contraseña de Pedro): abrir `/login` en el navegador de Claude, inyectar en `localStorage` una sesión falsa con la clave `sb-yvpixnfacvffpwqsvdct-auth-token` (JWT de forma válida, `exp` a futuro, usuario `b61a328a-d5a6-44bd-bd1f-f84ddee9402b`) y cargar datos de ejemplo con `queryClient.setQueryData([...clave], datos)` importando `/src/lib/queryClient.ts`; al terminar `localStorage.clear()` y parar el servidor. El puerto 5199 lo suele ocupar Pedro: si Vite arranca en otro (5200), usar ese.
+Estado del repo: todo commiteado y pusheado en `main` (último: Fase 5 recordatorios). Sin commitear a propósito: `.agents/` y `skills-lock.json` (skills de otro agente; no incluir en commits, usar `git add -A -- . ':!.agents' ':!skills-lock.json'`).
+Otros pendientes de Pedro: clave SMTP de Brevo (Fase 2), aprobar los textos de WhatsApp, probar todo logueado, y decidir si quiere `find-skills` enlazada en `~/.claude/skills`.
+
+
 **Fase 0: completa y pusheada a GitHub** (`main`,
 `https://github.com/xpedrojfloresx/mechanic-services`).
 
