@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useClientesPorNombre } from '@/features/clientes/api'
+import { ClientePicker } from '@/features/clientes/components/cliente-picker'
 import { ClienteNuevoForm } from '@/features/clientes/components/cliente-nuevo-form'
 import {
   useCerrarServicios,
@@ -220,9 +220,7 @@ function VehiculoNuevo({ patente }: { patente: string }) {
 }
 
 function ClienteExistente({ patente }: { patente: string }) {
-  const [texto, setTexto] = useState('')
   const [elegido, setElegido] = useState<Tables<'clientes'> | null>(null)
-  const { data: clientes } = useClientesPorNombre(texto)
 
   if (elegido) {
     return (
@@ -243,31 +241,5 @@ function ClienteExistente({ patente }: { patente: string }) {
     )
   }
 
-  return (
-    <div className="flex flex-col gap-2">
-      <Input
-        autoFocus
-        autoComplete="off"
-        placeholder="Buscar cliente por nombre"
-        value={texto}
-        onChange={(e) => setTexto(e.target.value)}
-      />
-      {clientes?.length === 0 && (
-        <p className="text-muted-foreground text-sm">
-          No encontramos ese cliente. Probá con &quot;Cliente nuevo&quot;.
-        </p>
-      )}
-      {clientes?.map((c) => (
-        <button
-          key={c.id}
-          type="button"
-          onClick={() => setElegido(c)}
-          className="hover:bg-muted flex items-center justify-between gap-2 rounded-md border p-3 text-left text-sm"
-        >
-          <span className="font-medium">{c.nombre}</span>
-          <span className="text-muted-foreground">{c.telefono}</span>
-        </button>
-      ))}
-    </div>
-  )
+  return <ClientePicker onElegir={setElegido} />
 }

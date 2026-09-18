@@ -89,3 +89,30 @@ export function useVehiculoPorPatente(patente: string | null) {
     },
   })
 }
+
+// Pasa el vehículo a otro cliente. El historial (servicios) cuelga del
+// vehículo, así que se conserva entero.
+export function useCambiarCliente() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      vehiculoId,
+      clienteId,
+    }: {
+      vehiculoId: string
+      clienteId: string
+    }) => {
+      const { error } = await supabase
+        .from('vehiculos')
+        .update({ cliente_id: clienteId })
+        .eq('id', vehiculoId)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      for (const key of ['vehiculos', 'servicios', 'busqueda', 'clientes']) {
+        queryClient.invalidateQueries({ queryKey: [key] })
+      }
+    },
+  })
+}

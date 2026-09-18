@@ -42,16 +42,24 @@ export function VehiculoDetallePage() {
             {vehiculo.color || '—'}
           </p>
           {vehiculo.clientes && (
-            <p>
-              <span className="text-muted-foreground">Cliente: </span>
-              <Link
-                to={`/clientes/${vehiculo.clientes.id}`}
-                className="underline underline-offset-4"
-              >
-                {vehiculo.clientes.nombre}
-              </Link>
-              {vehiculo.clientes.telefono && ` · ${vehiculo.clientes.telefono}`}
-            </p>
+            <>
+              <p>
+                <span className="text-muted-foreground">Cliente: </span>
+                <Link
+                  to={`/clientes/${vehiculo.clientes.id}`}
+                  className="underline underline-offset-4"
+                >
+                  {vehiculo.clientes.nombre}
+                </Link>
+                {vehiculo.clientes.telefono &&
+                  ` · ${vehiculo.clientes.telefono}`}
+              </p>
+              <Button asChild variant="outline" size="sm" className="mt-2">
+                <Link to={`/vehiculos/${vehiculo.id}/cambiar-cliente`}>
+                  Cambiar de dueño
+                </Link>
+              </Button>
+            </>
           )}
         </CardContent>
       </Card>

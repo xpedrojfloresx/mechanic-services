@@ -17,6 +17,7 @@ import { ServicioDetallePage } from '@/routes/servicio-detalle'
 import { ServicioEditarPage } from '@/routes/servicio-editar-page'
 import { ServicioNuevoPage } from '@/routes/servicio-nuevo'
 import { ServiciosPage } from '@/routes/servicios'
+import { VehiculoCambiarClientePage } from '@/routes/vehiculo-cambiar-cliente'
 import { VehiculoDetallePage } from '@/routes/vehiculo-detalle'
 import { VehiculoFormPage } from '@/routes/vehiculo-form-page'
 
@@ -52,6 +53,10 @@ function App() {
             <Route path="/vehiculos/nuevo" element={<VehiculoFormPage />} />
             <Route path="/vehiculos/:id" element={<VehiculoDetallePage />} />
             <Route path="/vehiculos/:id/ingreso" element={<IngresoPage />} />
+            <Route
+              path="/vehiculos/:id/cambiar-cliente"
+              element={<VehiculoCambiarClientePage />}
+            />
             <Route
               path="/vehiculos/:id/editar"
               element={<VehiculoFormPage />}

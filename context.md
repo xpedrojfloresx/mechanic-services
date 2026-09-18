@@ -22,6 +22,10 @@ usa la contraseña de Pedro). Ver "Qué falta (Fase 3)".
 
 ## Hecho y verificado
 
+### Cambiar de dueño de un vehículo (2026-09-18)
+
+Botón **"Cambiar de dueño"** en la ficha del vehículo → `/vehiculos/:id/cambiar-cliente`: se elige un **cliente que ya existe** (buscador por nombre, sin ofrecer al dueño actual; pide confirmación "¿Pasar AB123CD a X?") o se crea un **cliente nuevo** (nombre + teléfono) y se le pasa. Solo cambia `vehiculos.cliente_id`: el **historial de servicios se queda con el vehículo** (probado: el servicio sigue asociado a la patente tras el cambio). Migración `20260918000007_validar_cambio_de_cliente.sql` (aplicada): trigger `BEFORE UPDATE OF cliente_id` que rechaza (42501) pasar un vehículo a un cliente de **otro taller** (las claves foráneas no pasan por RLS, sin esto se podía enlazar entre talleres); probado por SQL con RLS (mismo taller OK, otro taller rechazado). El buscador de clientes se extrajo a `ClientePicker` y también lo usa Recibir. Verificado en navegador con datos falsos; falta la prueba de Pedro con datos reales.
+
 ### Modo ágil (2026-09-18)
 
 Los formularios de recibir/crear muestran solo lo indispensable; lo avanzado va plegado en **"Más datos (opcional)"** (`components/mas-datos.tsx`): **email** del cliente, **año y color** del vehículo y **fecha de ingreso** (por defecto hoy). Siempre visibles: nombre, teléfono, patente, marca, modelo, kilometraje, motivo y el **estado en que llegó** (opcional pero visible, porque Pedro pidió tenerlo siempre a mano). Los campos plegados siguen montados (se guardan igual) y la sección **se abre sola si hay un error** en alguno, o si al editar ya tiene datos (ej. un vehículo con año). Aplica a `ClienteNuevoForm`, `VehiculoFields`, `IngresoFields` y por lo tanto a Recibir, alta/edición de vehículo y editar ingreso. Se agregó `key` por id en los formularios de edición para que no se arrastre estado entre registros. Verificado en navegador con datos falsos; falta la opinión de Pedro sobre qué más plegar.
@@ -33,7 +37,7 @@ Pedro compartió una referencia de Vehix; quedó como **regla permanente en `CLA
 Pendiente derivado, a criterio de Pedro y de menor a mayor esfuerzo:
 - ~~Modo ágil por defecto~~ **hecho** (ver "Modo ágil" abajo).
 - **Botón "enviar por WhatsApp"** (`wa.me/<número>?text=`): requiere definir cómo armar el número (Argentina: `549` + área + número; Chile: `569` + 8 dígitos; ya se guarda solo dígitos) y el texto del mensaje. Pedir a Pedro el texto.
-- **Reasignar un vehículo a otro cliente** conservando su historial (cambiar `vehiculos.cliente_id`; los servicios cuelgan del vehículo, no del cliente).
+- ~~Reasignar un vehículo a otro cliente~~ **hecho** (ver "Cambiar de dueño" abajo).
 - Estado del servicio: ya cubierto (En taller / Listo / Entregado).
 
 ### Servicios múltiples, cliente visible y olvido de la entrega (2026-09-18, pedido de Pedro)
