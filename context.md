@@ -29,6 +29,8 @@ usa la contraseña de Pedro). Ver "Qué falta (Fase 3)".
 - Búsqueda: debounce 250 ms, mínimo 2 caracteres, `ilike` parcial sobre `vehiculos.patente` (normalizada) y `clientes.nombre` (con `%`/`_` escapados), 20 resultados por tipo, usando los índices `pg_trgm` de la Fase 1.
 - Verificado por Claude: `npm run build` y `npm run lint` limpios; sintaxis de las consultas (embed `clientes(...)`, `ilike`) validada contra la API real (200); con la identidad de Pedro simulada por SQL: alta de cliente+vehículo OK, patente duplicada → `23505`, insertar en taller ajeno → bloqueado por RLS, búsqueda por patente y nombre encuentra el registro. Datos de prueba borrados (el taller de Pedro quedó con 0 clientes). Smoke en navegador sin sesión: sin errores de consola.
 - `src/lib/database.types.ts` agregado a `.prettierignore` (Prettier lo reformateaba).
+- **Dashboard con menú lateral** (pedido de Pedro con una imagen de referencia: solo estructura, sin colores ni gráficos): sidebar de shadcn (`sidebar`, `sheet`, `tooltip`, `separator`; en celular se pliega detrás de un botón) con nombre del taller, botón "Nuevo cliente", secciones Inicio y Clientes, y "Próximamente" (Servicios, Recordatorios, deshabilitadas) hasta que existan sus fases; pie con email y "Cerrar sesión". Barra superior con el botón del menú. Inicio muestra tarjetas de resumen (cantidad de clientes y de vehículos), el buscador y clientes recientes. Archivos: `components/app-layout.tsx`, `features/resumen/api.ts`, `features/auth/hooks/use-taller-actual.ts`.
+- Verificado en navegador con una sesión falsa inyectada en el localStorage (solo para ver la estructura, sin datos reales): se ve bien en escritorio y en celular, el menú lateral abre. `src/hooks/use-mobile.ts` (generado por shadcn) reescrito con `useSyncExternalStore` porque rompía la regla de lint `set-state-in-effect`.
 
 ## Hecho y verificado (Fases 0–2)
 
@@ -131,7 +133,8 @@ usa la contraseña de Pedro). Ver "Qué falta (Fase 3)".
 
 ## Dudas abiertas para Pedro (Fase 3)
 
-- **Patentes de motos** (ej. `123ABC`, `A123BCD`) no pasan la validación actual, que solo acepta `ABC123` y `AB123CD` como pide el plan. ¿Se atienden motos? Si sí, hay que sumar esos formatos.
+- ~~Patentes de motos~~: Pedro dijo que **por ahora no se atienden motos** (2026-09-18); solo `ABC123` y `AB123CD`.
+- Dashboard: el menú y las tarjetas actuales son una propuesta mía a partir de la imagen de referencia. Pedro puede pedir otras secciones/tarjetas. Falta decidir si se agrega un buscador también en la barra superior (hoy está solo en Inicio).
 - ¿Querés un botón "abrir WhatsApp" en la ficha del cliente? Requiere definir cómo normalizar los teléfonos argentinos (código de país / el `9` de celulares); no lo armé para no inventar.
 
 ## Preguntas de la sección 5 — respondidas por Pedro (2026-09-18)

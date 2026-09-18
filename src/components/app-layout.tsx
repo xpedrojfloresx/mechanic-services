@@ -1,58 +1,137 @@
-import { NavLink, Outlet } from 'react-router'
+import {
+  Bell,
+  LayoutDashboard,
+  LogOut,
+  Plus,
+  Users,
+  Wrench,
+} from 'lucide-react'
+import { Link, NavLink, Outlet } from 'react-router'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+  useSidebar,
+} from '@/components/ui/sidebar'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { useAuth } from '@/features/auth/auth-context'
+import { useTallerActual } from '@/features/auth/hooks/use-taller-actual'
 import { supabase } from '@/lib/supabase'
-import { cn } from '@/lib/utils'
 
-const links = [
-  { to: '/', label: 'Buscar', end: true },
-  { to: '/clientes', label: 'Clientes', end: false },
+const secciones = [
+  { to: '/', label: 'Inicio', icon: LayoutDashboard, end: true },
+  { to: '/clientes', label: 'Clientes', icon: Users, end: false },
 ]
 
-export function AppLayout() {
+// Secciones de fases futuras: se muestran deshabilitadas para dar el panorama.
+const proximamente = [
+  { label: 'Servicios', icon: Wrench },
+  { label: 'Recordatorios', icon: Bell },
+]
+
+function AppSidebar() {
   const { user } = useAuth()
+  const { data: taller } = useTallerActual()
+  const { setOpenMobile } = useSidebar()
 
   return (
-    <div className="min-h-svh">
-      <header className="bg-background sticky top-0 z-10 border-b">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 px-4 py-3">
-          <nav className="flex items-center gap-4">
-            <span className="font-semibold">Talleres</span>
-            {links.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                end={link.end}
-                className={({ isActive }) =>
-                  cn(
-                    'text-sm',
-                    isActive
-                      ? 'text-foreground font-medium'
-                      : 'text-muted-foreground',
-                  )
-                }
-              >
-                {link.label}
-              </NavLink>
-            ))}
-          </nav>
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground hidden text-sm sm:inline">
-              {user?.email}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => supabase.auth.signOut()}
-            >
-              Salir
-            </Button>
-          </div>
+    <Sidebar>
+      <SidebarHeader className="gap-3 p-4">
+        <div>
+          <p className="font-semibold">{taller?.nombre ?? 'Talleres'}</p>
+          <p className="text-muted-foreground text-xs">Mechanic Services</p>
         </div>
-      </header>
-      <main className="mx-auto max-w-3xl px-4 py-6">
-        <Outlet />
-      </main>
-    </div>
+        <Button asChild size="sm" onClick={() => setOpenMobile(false)}>
+          <Link to="/clientes/nuevo">
+            <Plus /> Nuevo cliente
+          </Link>
+        </Button>
+      </SidebarHeader>
+
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {secciones.map((s) => (
+                <SidebarMenuItem key={s.to}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={s.to}
+                      end={s.end}
+                      onClick={() => setOpenMobile(false)}
+                      className="aria-[current=page]:bg-sidebar-accent aria-[current=page]:font-medium"
+                    >
+                      <s.icon />
+                      <span>{s.label}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Próximamente</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {proximamente.map((s) => (
+                <SidebarMenuItem key={s.label}>
+                  <SidebarMenuButton disabled>
+                    <s.icon />
+                    <span>{s.label}</span>
+                    <Badge variant="outline" className="ml-auto">
+                      Pronto
+                    </Badge>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="gap-2 p-4">
+        <p className="text-muted-foreground truncate text-xs">{user?.email}</p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => supabase.auth.signOut()}
+        >
+          <LogOut /> Cerrar sesión
+        </Button>
+      </SidebarFooter>
+    </Sidebar>
+  )
+}
+
+export function AppLayout() {
+  return (
+    <TooltipProvider>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <header className="bg-background sticky top-0 z-10 flex h-14 items-center gap-2 border-b px-4">
+            <SidebarTrigger />
+            <span className="font-medium">Panel</span>
+          </header>
+          <main className="mx-auto w-full max-w-4xl px-4 py-6">
+            <Outlet />
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
+    </TooltipProvider>
   )
 }

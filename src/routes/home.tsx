@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MIN_CARACTERES_BUSQUEDA, useBusqueda } from '@/features/busqueda/api'
 import { useClientesRecientes } from '@/features/clientes/api'
+import { useConteos } from '@/features/resumen/api'
 import { useDebouncedValue } from '@/lib/use-debounced-value'
 
 export function HomePage() {
@@ -16,6 +16,7 @@ export function HomePage() {
 
   const busqueda = useBusqueda(terminoDebounced)
   const recientes = useClientesRecientes()
+  const conteos = useConteos()
 
   const hayResultados =
     !!busqueda.data &&
@@ -23,6 +24,11 @@ export function HomePage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-2 gap-4">
+        <ResumenCard titulo="Clientes" valor={conteos.data?.clientes} />
+        <ResumenCard titulo="Vehículos" valor={conteos.data?.vehiculos} />
+      </div>
+
       <div className="flex flex-col gap-2">
         <Input
           autoFocus
@@ -33,11 +39,6 @@ export function HomePage() {
           value={termino}
           onChange={(e) => setTermino(e.target.value)}
         />
-        <div className="flex gap-2">
-          <Button asChild size="sm">
-            <Link to="/clientes/nuevo">Nuevo cliente</Link>
-          </Button>
-        </div>
       </div>
 
       {busca ? (
@@ -156,4 +157,15 @@ function Resultados(props: {
     )
   }
   return <div className="flex flex-col gap-6">{props.children}</div>
+}
+
+function ResumenCard(props: { titulo: string; valor: number | undefined }) {
+  return (
+    <Card>
+      <CardContent className="flex flex-col gap-1">
+        <p className="text-3xl font-semibold">{props.valor ?? '—'}</p>
+        <p className="text-muted-foreground text-sm">{props.titulo}</p>
+      </CardContent>
+    </Card>
+  )
 }
