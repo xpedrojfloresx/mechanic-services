@@ -14,6 +14,9 @@ import {
   siguienteEstado,
   valoresCambioEstado,
 } from '@/features/servicios/estados'
+import { useTallerActual } from '@/features/auth/hooks/use-taller-actual'
+import { BotonWhatsApp } from '@/features/whatsapp/components/boton-whatsapp'
+import { mensajeServicio } from '@/features/whatsapp/whatsapp'
 import { diasDesde, haceCuanto } from '@/lib/formato'
 
 type Servicio = NonNullable<ReturnType<typeof useServicios>['data']>[number]
@@ -25,6 +28,7 @@ type Servicio = NonNullable<ReturnType<typeof useServicios>['data']>[number]
 export function ServicioEnCursoCard({ servicio }: { servicio: Servicio }) {
   const actualizar = useActualizarServicio()
   const cerrar = useCerrarServicios()
+  const { data: taller } = useTallerActual()
   const [error, setError] = useState(false)
   const [sigueAca, setSigueAca] = useState(false)
   const siguiente = siguienteEstado(servicio.estado)
@@ -78,6 +82,21 @@ export function ServicioEnCursoCard({ servicio }: { servicio: Servicio }) {
             </p>
           )}
         </Link>
+        <BotonWhatsApp
+          soloIcono
+          variant="ghost"
+          telefono={v?.clientes?.telefono}
+          mensaje={mensajeServicio(
+            {
+              nombre: v?.clientes?.nombre ?? '',
+              marca: v?.marca ?? '',
+              modelo: v?.modelo ?? '',
+              patente: v?.patente ?? '',
+              taller: taller?.nombre ?? 'el taller',
+            },
+            servicio.estado,
+          )}
+        />
         {siguiente && (
           <Button
             size="sm"

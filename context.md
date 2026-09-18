@@ -22,6 +22,14 @@ usa la contraseña de Pedro). Ver "Qué falta (Fase 3)".
 
 ## Hecho y verificado
 
+### Botón de WhatsApp (2026-09-18)
+
+Versión mínima, **sin la API de WhatsApp Business**: un botón abre `https://wa.me/<número>?text=<mensaje>` y la persona revisa y envía el mensaje ella. Archivos: `features/whatsapp/whatsapp.ts` (funciones puras) y `components/boton-whatsapp.tsx`.
+- **Número**: se arma desde los dígitos guardados. Argentina (10 dígitos, 0+10, 54+10, 549+10) → `549` + 10 dígitos; Chile (9 dígitos o 56+9) → `56` + 9 dígitos. Probado con 10 casos. **Supuestos a confirmar**: un número argentino de 10 dígitos se trata como celular (`549…`; si era un fijo WhatsApp no lo encuentra) y no se acepta el `15`. Sin teléfono válido el botón aparece deshabilitado ("Falta un teléfono válido") o, en las tarjetas chicas, no aparece.
+- **Dónde**: ficha del servicio ("Avisar por WhatsApp", el mensaje cambia según el estado y en *Listo*/*Entregado* incluye el detalle de servicios y el **total**), ícono en cada tarjeta de "En el taller ahora" (un toque), y "WhatsApp" en la ficha del cliente y del vehículo.
+- **Textos propuestos por mí (Pedro los tiene que aprobar o cambiar)**, en `whatsapp.ts`: *En taller*: "Hola Juan, recibimos tu Ford Fiesta (AB123CD) en <taller>. Te avisamos cuando esté listo." · *Listo*: "…ya está listo para retirar en <taller>." + detalle · *Entregado*: "…gracias por confiar en <taller>. Te dejamos el detalle del servicio…" + detalle · general: "Hola Juan, te escribimos de <taller> por tu Ford Fiesta (AB123CD)." El importe usa el símbolo `$` (lo usan Argentina y Chile) sin moneda.
+- Verificado en navegador con datos falsos (enlaces correctos en las cuatro pantallas, tarjeta sin teléfono sin botón). **No** se probó abrir WhatsApp de verdad.
+
 ### Cambiar de dueño de un vehículo (2026-09-18)
 
 Botón **"Cambiar de dueño"** en la ficha del vehículo → `/vehiculos/:id/cambiar-cliente`: se elige un **cliente que ya existe** (buscador por nombre, sin ofrecer al dueño actual; pide confirmación "¿Pasar AB123CD a X?") o se crea un **cliente nuevo** (nombre + teléfono) y se le pasa. Solo cambia `vehiculos.cliente_id`: el **historial de servicios se queda con el vehículo** (probado: el servicio sigue asociado a la patente tras el cambio). Migración `20260918000007_validar_cambio_de_cliente.sql` (aplicada): trigger `BEFORE UPDATE OF cliente_id` que rechaza (42501) pasar un vehículo a un cliente de **otro taller** (las claves foráneas no pasan por RLS, sin esto se podía enlazar entre talleres); probado por SQL con RLS (mismo taller OK, otro taller rechazado). El buscador de clientes se extrajo a `ClientePicker` y también lo usa Recibir. Verificado en navegador con datos falsos; falta la prueba de Pedro con datos reales.
@@ -36,7 +44,7 @@ Pedro compartió una referencia de Vehix; quedó como **regla permanente en `CLA
 
 Pendiente derivado, a criterio de Pedro y de menor a mayor esfuerzo:
 - ~~Modo ágil por defecto~~ **hecho** (ver "Modo ágil" abajo).
-- **Botón "enviar por WhatsApp"** (`wa.me/<número>?text=`): requiere definir cómo armar el número (Argentina: `549` + área + número; Chile: `569` + 8 dígitos; ya se guarda solo dígitos) y el texto del mensaje. Pedir a Pedro el texto.
+- ~~Botón "enviar por WhatsApp"~~ **hecho** (ver "WhatsApp" abajo); falta que Pedro apruebe los textos.
 - ~~Reasignar un vehículo a otro cliente~~ **hecho** (ver "Cambiar de dueño" abajo).
 - Estado del servicio: ya cubierto (En taller / Listo / Entregado).
 

@@ -6,12 +6,16 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useServiciosDeVehiculo } from '@/features/servicios/api'
 import { etiquetaEstado } from '@/features/servicios/estados'
 import { useVehiculo } from '@/features/vehiculos/api'
+import { useTallerActual } from '@/features/auth/hooks/use-taller-actual'
+import { BotonWhatsApp } from '@/features/whatsapp/components/boton-whatsapp'
+import { mensajeGeneral } from '@/features/whatsapp/whatsapp'
 import { formatearFecha } from '@/lib/formato'
 
 export function VehiculoDetallePage() {
   const { id } = useParams()
   const { data: vehiculo, isLoading, isError } = useVehiculo(id)
   const { data: servicios } = useServiciosDeVehiculo(id)
+  const { data: taller } = useTallerActual()
 
   if (isLoading) return <Skeleton className="h-40 w-full" />
   if (isError || !vehiculo) {
@@ -54,11 +58,24 @@ export function VehiculoDetallePage() {
                 {vehiculo.clientes.telefono &&
                   ` · ${vehiculo.clientes.telefono}`}
               </p>
-              <Button asChild variant="outline" size="sm" className="mt-2">
-                <Link to={`/vehiculos/${vehiculo.id}/cambiar-cliente`}>
-                  Cambiar de dueño
-                </Link>
-              </Button>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <BotonWhatsApp
+                  telefono={vehiculo.clientes.telefono}
+                  texto="WhatsApp"
+                  mensaje={mensajeGeneral({
+                    nombre: vehiculo.clientes.nombre,
+                    marca: vehiculo.marca,
+                    modelo: vehiculo.modelo,
+                    patente: vehiculo.patente,
+                    taller: taller?.nombre ?? 'el taller',
+                  })}
+                />
+                <Button asChild variant="outline" size="sm">
+                  <Link to={`/vehiculos/${vehiculo.id}/cambiar-cliente`}>
+                    Cambiar de dueño
+                  </Link>
+                </Button>
+              </div>
             </>
           )}
         </CardContent>

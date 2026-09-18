@@ -16,6 +16,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useCliente, useEliminarCliente } from '@/features/clientes/api'
+import { useTallerActual } from '@/features/auth/hooks/use-taller-actual'
+import { BotonWhatsApp } from '@/features/whatsapp/components/boton-whatsapp'
+import { mensajeCliente } from '@/features/whatsapp/whatsapp'
 import { useVehiculosDeCliente } from '@/features/vehiculos/api'
 
 export function ClienteDetallePage() {
@@ -23,6 +26,7 @@ export function ClienteDetallePage() {
   const { data: cliente, isLoading, isError } = useCliente(id)
   const { data: vehiculos } = useVehiculosDeCliente(id)
   const eliminar = useEliminarCliente()
+  const { data: taller } = useTallerActual()
   const navigate = useNavigate()
   const [errorEliminar, setErrorEliminar] = useState(false)
 
@@ -98,6 +102,16 @@ export function ClienteDetallePage() {
             <span className="text-muted-foreground">Teléfono: </span>
             {cliente.telefono || '—'}
           </p>
+          <div className="mt-1">
+            <BotonWhatsApp
+              telefono={cliente.telefono}
+              mensaje={mensajeCliente(
+                cliente.nombre,
+                taller?.nombre ?? 'el taller',
+              )}
+              texto="WhatsApp"
+            />
+          </div>
           <p>
             <span className="text-muted-foreground">Email: </span>
             {cliente.email || '—'}

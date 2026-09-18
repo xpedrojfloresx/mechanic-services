@@ -18,10 +18,14 @@ import { Skeleton } from '@/components/ui/skeleton'
 import {
   useActualizarServicio,
   useEliminarServicio,
+  useItems,
   useServicio,
 } from '@/features/servicios/api'
 import { ESTADOS, valoresCambioEstado } from '@/features/servicios/estados'
 import { ItemsSection } from '@/features/servicios/components/items-section'
+import { useTallerActual } from '@/features/auth/hooks/use-taller-actual'
+import { BotonWhatsApp } from '@/features/whatsapp/components/boton-whatsapp'
+import { mensajeServicio } from '@/features/whatsapp/whatsapp'
 import { formatearFecha } from '@/lib/formato'
 
 export function ServicioDetallePage() {
@@ -30,6 +34,8 @@ export function ServicioDetallePage() {
   const { data: servicio, isLoading, isError } = useServicio(id)
   const actualizar = useActualizarServicio()
   const eliminar = useEliminarServicio()
+  const { data: taller } = useTallerActual()
+  const { data: items } = useItems(id)
   const [error, setError] = useState<string | null>(null)
 
   if (isLoading) return <Skeleton className="h-40 w-full" />
@@ -154,6 +160,22 @@ export function ServicioDetallePage() {
                 </Button>
               ))}
             </div>
+          </div>
+          <div>
+            <BotonWhatsApp
+              telefono={cliente?.telefono}
+              mensaje={mensajeServicio(
+                {
+                  nombre: cliente?.nombre ?? '',
+                  marca: vehiculo?.marca ?? '',
+                  modelo: vehiculo?.modelo ?? '',
+                  patente: vehiculo?.patente ?? '',
+                  taller: taller?.nombre ?? 'el taller',
+                },
+                servicio.estado,
+                items ?? [],
+              )}
+            />
           </div>
           {error && <p className="text-destructive">{error}</p>}
         </CardContent>
