@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { MIN_CARACTERES_BUSQUEDA, useBusqueda } from '@/features/busqueda/api'
 import { useClientesRecientes } from '@/features/clientes/api'
 import { useConteos } from '@/features/resumen/api'
+import { Insights } from '@/features/resumen/components/insights'
 import { useDebouncedValue } from '@/lib/use-debounced-value'
 
 export function HomePage() {
@@ -28,6 +29,8 @@ export function HomePage() {
         <ResumenCard titulo="Clientes" valor={conteos.data?.clientes} />
         <ResumenCard titulo="Vehículos" valor={conteos.data?.vehiculos} />
       </div>
+
+      <Insights />
 
       <div className="flex flex-col gap-2">
         <Input

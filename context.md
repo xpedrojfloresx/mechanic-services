@@ -31,6 +31,10 @@ usa la contraseña de Pedro). Ver "Qué falta (Fase 3)".
 - `src/lib/database.types.ts` agregado a `.prettierignore` (Prettier lo reformateaba).
 - **Dashboard con menú lateral** (pedido de Pedro con una imagen de referencia: solo estructura, sin colores ni gráficos): sidebar de shadcn (`sidebar`, `sheet`, `tooltip`, `separator`; en celular se pliega detrás de un botón) con nombre del taller, botón "Nuevo cliente", secciones Inicio y Clientes, y "Próximamente" (Servicios, Recordatorios, deshabilitadas) hasta que existan sus fases; pie con email y "Cerrar sesión". Barra superior con el botón del menú. Inicio muestra tarjetas de resumen (cantidad de clientes y de vehículos), el buscador y clientes recientes. Archivos: `components/app-layout.tsx`, `features/resumen/api.ts`, `features/auth/hooks/use-taller-actual.ts`.
 - Verificado en navegador con una sesión falsa inyectada en el localStorage (solo para ver la estructura, sin datos reales): se ve bien en escritorio y en celular, el menú lateral abre. `src/hooks/use-mobile.ts` (generado por shadcn) reescrito con `useSyncExternalStore` porque rompía la regla de lint `set-state-in-effect`.
+- **Insights en Inicio** (pedido de Pedro): dos gráficos de barras (**clientes nuevos** y **vehículos nuevos**) con filtro Semana / Mes / Año — semana = últimos 7 días por día, mes = últimos 30 días por día, año = últimos 12 meses por mes; muestra el total del período. Se agrupa por fecha local del navegador (Argentina), no por UTC. Archivos: `features/resumen/rangos.ts`, `features/resumen/api.ts` (`useSerieAltas`), `features/resumen/components/insights.tsx`. Se sumó el componente `chart` de shadcn, que instala **recharts** (dependencia nueva, dentro del ecosistema shadcn), y `tabs`.
+- Verificado: lógica de rangos con un script (7/30/12 barras, un alta a las 23:30 locales cae en su día); en navegador con sesión falsa y datos de ejemplo inyectados en el cache de TanStack Query (no datos reales): los tres filtros cambian el gráfico y el total. Falta verlo con datos reales de Pedro.
+- **Interpretación a confirmar**: "cantidad de clientes que se tuvo" se tomó como *clientes nuevos cargados por período* (fecha de alta). Cuando existan los servicios (Fase 4) se puede agregar "clientes atendidos" (con al menos un servicio en el período).
+- **Límite conocido**: los gráficos traen las fechas y agrupan en el navegador; PostgREST devuelve máximo 1000 filas por consulta. Si un taller supera 1000 altas en un año, pasar el agrupado a una función SQL.
 
 ## Hecho y verificado (Fases 0–2)
 
@@ -189,4 +193,5 @@ npx supabase gen types typescript --linked > src/lib/database.types.ts   # regen
 - @supabase/supabase-js 2.116.0
 - vite-plugin-pwa 1.3.0
 - supabase (CLI) 2.117.0
-- react-router 8.4.0 (agregado 2026-09-18, Fase 2)
+- react-router 7.x (agregado 2026-09-18, Fase 2; ver package-lock)
+- recharts 3.8 (vía shadcn `chart`, Fase 3)
