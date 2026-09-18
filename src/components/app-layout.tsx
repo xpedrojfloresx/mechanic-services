@@ -138,6 +138,12 @@ export function AppLayout() {
 
   return (
     <TooltipProvider>
+      <a
+        href="#contenido"
+        className="bg-background text-foreground sr-only rounded-md border px-3 py-2 text-sm focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50"
+      >
+        Saltar al contenido
+      </a>
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
@@ -146,9 +152,12 @@ export function AppLayout() {
             {/* key: al cambiar de pantalla el buscador se limpia solo */}
             <BuscadorGlobal key={pathname} />
           </header>
-          <main className="mx-auto w-full max-w-4xl px-4 py-6 pb-28 md:pb-6">
+          <div
+            id="contenido"
+            className="mx-auto w-full max-w-4xl px-4 py-6 pb-28 md:pb-6"
+          >
             <Outlet />
-          </main>
+          </div>
         </SidebarInset>
         <BarraInferior />
       </SidebarProvider>

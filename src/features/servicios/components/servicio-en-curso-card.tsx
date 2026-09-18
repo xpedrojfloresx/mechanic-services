@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { Badge } from '@/components/ui/badge'
+import { Patente } from '@/components/patente'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -18,6 +19,7 @@ import { useTallerActual } from '@/features/auth/hooks/use-taller-actual'
 import { BotonWhatsApp } from '@/features/whatsapp/components/boton-whatsapp'
 import { mensajeServicio } from '@/features/whatsapp/whatsapp'
 import { diasDesde, haceCuanto } from '@/lib/formato'
+import { cn } from '@/lib/utils'
 
 type Servicio = NonNullable<ReturnType<typeof useServicios>['data']>[number]
 
@@ -61,17 +63,20 @@ export function ServicioEnCursoCard({ servicio }: { servicio: Servicio }) {
   }
 
   return (
-    <Card>
-      <CardContent className="flex items-center justify-between gap-3">
+    <Card className={preguntar ? 'gap-0 overflow-hidden pb-0' : undefined}>
+      <CardContent
+        className={cn(
+          'flex items-center justify-between gap-3',
+          preguntar && 'pb-4',
+        )}
+      >
         <Link to={`/servicios/${servicio.id}`} className="min-w-0 flex-1">
           <p className="truncate font-medium">{v?.clientes?.nombre}</p>
           <p className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
-            <Badge variant="secondary" className="font-mono">
-              {v?.patente}
-            </Badge>
+            <Patente size="sm">{v?.patente}</Patente>
             {v?.marca} {v?.modelo}
           </p>
-          <p className="text-muted-foreground truncate text-xs">
+          <p className="text-muted-foreground line-clamp-2 text-xs">
             {haceCuanto(servicio.fecha_ingreso)}
             {servicio.motivo_ingreso && ` · ${servicio.motivo_ingreso}`} ·{' '}
             <Badge variant="outline">{etiquetaEstado(servicio.estado)}</Badge>

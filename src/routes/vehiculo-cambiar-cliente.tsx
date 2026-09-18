@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { useNavigate, useParams } from 'react-router'
 import { z } from 'zod'
 import { FormField } from '@/components/form-field'
-import { Badge } from '@/components/ui/badge'
+import { Patente } from '@/components/patente'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -24,11 +24,11 @@ import type { Tables } from '@/lib/database.types'
 // El historial de servicios se queda con el vehículo.
 export function VehiculoCambiarClientePage() {
   const { id } = useParams()
-  const { data: vehiculo, isLoading, isError } = useVehiculo(id)
+  const { data: vehiculo, isLoading } = useVehiculo(id)
   const [modo, setModo] = useState<'existente' | 'nuevo'>('existente')
 
   if (isLoading) return <Skeleton className="h-40 w-full max-w-md" />
-  if (isError || !vehiculo) {
+  if (!vehiculo) {
     return (
       <p className="text-destructive text-sm">No encontramos el vehículo.</p>
     )
@@ -53,7 +53,7 @@ export function VehiculoCambiarClientePage() {
               Dueño actual: {vehiculo.clientes?.nombre}
             </p>
           </div>
-          <Badge className="font-mono">{vehiculo.patente}</Badge>
+          <Patente size="md">{vehiculo.patente}</Patente>
         </CardContent>
       </Card>
 

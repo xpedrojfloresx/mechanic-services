@@ -18,7 +18,7 @@ export default defineConfig({
         short_name: 'Talleres',
         description:
           'Gestión de clientes, vehículos e historial de reparaciones para talleres mecánicos',
-        theme_color: '#ffffff',
+        theme_color: '#2b5b84',
         icons: [],
       },
       workbox: {

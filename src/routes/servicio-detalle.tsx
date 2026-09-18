@@ -11,7 +11,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
+import { Patente } from '@/components/patente'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -32,7 +32,7 @@ import { formatearFecha } from '@/lib/formato'
 export function ServicioDetallePage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { data: servicio, isLoading, isError } = useServicio(id)
+  const { data: servicio, isLoading } = useServicio(id)
   const actualizar = useActualizarServicio()
   const eliminar = useEliminarServicio()
   const { data: taller } = useTallerActual()
@@ -40,7 +40,7 @@ export function ServicioDetallePage() {
   const [error, setError] = useState<string | null>(null)
 
   if (isLoading) return <Skeleton className="h-40 w-full" />
-  if (isError || !servicio) {
+  if (!servicio) {
     return (
       <p className="text-destructive text-sm">No encontramos el servicio.</p>
     )
@@ -104,7 +104,7 @@ export function ServicioDetallePage() {
             <p className="mt-1 flex flex-wrap items-center gap-2 text-sm">
               {vehiculo && (
                 <Link to={`/vehiculos/${vehiculo.id}`}>
-                  <Badge className="font-mono">{vehiculo.patente}</Badge>
+                  <Patente size="md">{vehiculo.patente}</Patente>
                 </Link>
               )}
               {vehiculo?.marca} {vehiculo?.modelo}

@@ -5,10 +5,10 @@ import { IngresoForm } from '@/features/servicios/components/ingreso-form'
 
 export function ServicioEditarPage() {
   const { id } = useParams()
-  const { data: servicio, isLoading, isError } = useServicio(id)
+  const { data: servicio, isLoading } = useServicio(id)
 
   if (isLoading) return <Skeleton className="h-64 w-full max-w-md" />
-  if (isError || !servicio) {
+  if (!servicio) {
     return (
       <p className="text-destructive text-sm">No encontramos el servicio.</p>
     )

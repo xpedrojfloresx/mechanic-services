@@ -1,5 +1,6 @@
 import { CarFront } from 'lucide-react'
 import { Link } from 'react-router'
+import { EmptyState } from '@/components/empty-state'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -42,16 +43,17 @@ export function HomePage() {
           )}
         </h2>
         {enCurso.isLoading && <Skeleton className="h-20 w-full" />}
-        {enCurso.isError && (
+        {enCurso.isError && !enCurso.data && (
           <p className="text-destructive text-sm">
             No pudimos cargar los vehículos. Probá de nuevo.
           </p>
         )}
         {enCurso.data?.length === 0 && (
-          <p className="text-muted-foreground text-sm">
-            No hay vehículos en el taller. Cuando llegue uno, tocá &quot;Recibir
-            vehículo&quot;.
-          </p>
+          <EmptyState
+            icon={CarFront}
+            titulo="No hay vehículos en el taller"
+            texto="Cuando llegue uno, tocá Recibir vehículo y aparece acá."
+          />
         )}
         {enCurso.data?.map((s) => (
           <ServicioEnCursoCard key={s.id} servicio={s} />
@@ -98,7 +100,7 @@ function ResumenCard(props: { titulo: string; valor: number | undefined }) {
   return (
     <Card>
       <CardContent className="flex flex-col gap-1">
-        <p className="text-3xl font-semibold">{props.valor ?? '—'}</p>
+        <p className="text-3xl font-semibold">{props.valor ?? '-'}</p>
         <p className="text-muted-foreground text-sm">{props.titulo}</p>
       </CardContent>
     </Card>

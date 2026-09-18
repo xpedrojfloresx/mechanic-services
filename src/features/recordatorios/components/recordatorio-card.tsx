@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { Badge } from '@/components/ui/badge'
+import { Patente } from '@/components/patente'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useTallerActual } from '@/features/auth/hooks/use-taller-actual'
@@ -54,9 +54,7 @@ export function RecordatorioCard({
                 className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm"
               >
                 <span>{v.clientes?.nombre}</span>
-                <Badge variant="secondary" className="font-mono">
-                  {v.patente}
-                </Badge>
+                <Patente size="sm">{v.patente}</Patente>
                 {v.marca} {v.modelo}
               </Link>
             )}

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { Badge } from '@/components/ui/badge'
+import { Patente } from '@/components/patente'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -97,14 +97,14 @@ function Recepcion(props: { patente: string; onCambiar: () => void }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
-        <Badge className="font-mono text-lg">{props.patente}</Badge>
+        <Patente size="lg">{props.patente}</Patente>
         <Button variant="ghost" size="sm" onClick={props.onCambiar}>
           Cambiar patente
         </Button>
       </div>
 
       {isLoading && <Skeleton className="h-40 w-full" />}
-      {isError && (
+      {isError && vehiculo === undefined && (
         <p className="text-destructive text-sm">
           No pudimos buscar la patente. Probá de nuevo.
         </p>

@@ -68,11 +68,11 @@ function GraficoAltas(props: {
         <CardTitle className="text-muted-foreground text-sm font-medium">
           {props.titulo}
         </CardTitle>
-        <p className="text-3xl font-semibold">{isLoading ? '—' : total}</p>
+        <p className="text-3xl font-semibold">{isLoading ? '-' : total}</p>
       </CardHeader>
       <CardContent>
         {isLoading && <Skeleton className="h-40 w-full" />}
-        {isError && (
+        {isError && !data && (
           <p className="text-destructive text-sm">
             No pudimos cargar el gráfico.
           </p>

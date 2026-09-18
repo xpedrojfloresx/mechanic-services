@@ -1,7 +1,7 @@
 import { Search } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { Badge } from '@/components/ui/badge'
+import { Patente } from '@/components/patente'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MIN_CARACTERES_BUSQUEDA, useBusqueda } from '@/features/busqueda/api'
@@ -142,9 +142,7 @@ function FilaVehiculo(props: {
           {props.detalle}
         </span>
       </span>
-      <Badge variant="secondary" className="font-mono">
-        {props.patente}
-      </Badge>
+      <Patente size="sm">{props.patente}</Patente>
     </button>
   )
 }

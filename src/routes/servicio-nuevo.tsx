@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { Badge } from '@/components/ui/badge'
+import { Patente } from '@/components/patente'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -59,7 +59,7 @@ function ServiciosDelVehiculo(props: {
             </p>
           </div>
           <div className="flex flex-col items-end gap-1">
-            <Badge className="font-mono">{vehiculo.patente}</Badge>
+            <Patente size="md">{vehiculo.patente}</Patente>
             <Button variant="ghost" size="sm" onClick={props.onCambiar}>
               Cambiar auto
             </Button>

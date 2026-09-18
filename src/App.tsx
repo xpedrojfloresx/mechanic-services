@@ -11,6 +11,7 @@ import { ForgotPasswordPage } from '@/routes/forgot-password'
 import { HomePage } from '@/routes/home'
 import { IngresoPage } from '@/routes/ingreso-page'
 import { LoginPage } from '@/routes/login'
+import { NotFoundPage } from '@/routes/not-found'
 import { RecibirPage } from '@/routes/recibir'
 import { RecordatorioNuevoPage } from '@/routes/recordatorio-nuevo'
 import { RecordatoriosPage } from '@/routes/recordatorios'
@@ -70,6 +71,7 @@ function App() {
             />
           </Route>
         </Route>
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   )

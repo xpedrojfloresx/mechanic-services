@@ -11,7 +11,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
+import { Patente } from '@/components/patente'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -23,7 +23,7 @@ import { useVehiculosDeCliente } from '@/features/vehiculos/api'
 
 export function ClienteDetallePage() {
   const { id } = useParams()
-  const { data: cliente, isLoading, isError } = useCliente(id)
+  const { data: cliente, isLoading } = useCliente(id)
   const { data: vehiculos } = useVehiculosDeCliente(id)
   const eliminar = useEliminarCliente()
   const { data: taller } = useTallerActual()
@@ -42,7 +42,7 @@ export function ClienteDetallePage() {
   }
 
   if (isLoading) return <Skeleton className="h-40 w-full" />
-  if (isError || !cliente) {
+  if (!cliente) {
     return (
       <p className="text-destructive text-sm">No encontramos el cliente.</p>
     )
@@ -100,7 +100,7 @@ export function ClienteDetallePage() {
           )}
           <p>
             <span className="text-muted-foreground">Teléfono: </span>
-            {cliente.telefono || '—'}
+            {cliente.telefono || 'Sin teléfono'}
           </p>
           <div className="mt-1">
             <BotonWhatsApp
@@ -114,7 +114,7 @@ export function ClienteDetallePage() {
           </div>
           <p>
             <span className="text-muted-foreground">Email: </span>
-            {cliente.email || '—'}
+            {cliente.email || 'Sin email'}
           </p>
         </CardContent>
       </Card>
@@ -140,9 +140,7 @@ export function ClienteDetallePage() {
                 <p className="font-medium">
                   {v.marca} {v.modelo}
                 </p>
-                <Badge variant="secondary" className="font-mono">
-                  {v.patente}
-                </Badge>
+                <Patente size="sm">{v.patente}</Patente>
               </CardContent>
             </Card>
           </Link>

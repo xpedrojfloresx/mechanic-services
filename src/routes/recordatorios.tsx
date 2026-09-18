@@ -1,5 +1,6 @@
-import { Plus } from 'lucide-react'
+import { Bell, Plus } from 'lucide-react'
 import { Link } from 'react-router'
+import { EmptyState } from '@/components/empty-state'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRecordatorios } from '@/features/recordatorios/api'
@@ -35,17 +36,21 @@ export function RecordatoriosPage() {
       </div>
 
       {isLoading && <Skeleton className="h-24 w-full" />}
-      {isError && (
+      {isError && !data && (
         <p className="text-destructive text-sm">
           No pudimos cargar los recordatorios. Probá de nuevo.
         </p>
       )}
       {data?.length === 0 && (
-        <p className="text-muted-foreground text-sm">
-          No hay recordatorios pendientes. Se cargan desde un servicio
-          (&quot;Programar próximo servicio&quot;), desde la ficha del vehículo
-          o con el botón de arriba.
-        </p>
+        <EmptyState
+          icon={Bell}
+          titulo="No hay recordatorios pendientes"
+          texto="Programá el próximo servicio de un auto y lo vas a ver acá cuando se acerque."
+        >
+          <Button asChild size="sm">
+            <Link to="/recordatorios/nuevo">Nuevo recordatorio</Link>
+          </Button>
+        </EmptyState>
       )}
 
       <Grupo titulo="Vencidos" urgente items={vencidos} />

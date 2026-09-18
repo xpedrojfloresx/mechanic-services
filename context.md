@@ -2,34 +2,17 @@
 
 ## Estado actual
 
-### >>> PRÓXIMA TAREA (pedida por Pedro, hacer ANTES de la Fase 6) <<<
+### Rediseño visual con las skills de diseño: HECHO (2026-09-18), falta el OK de Pedro
 
-**Rediseño visual de toda la interfaz** usando estas tres skills, en este orden: `redesign-existing-projects` (auditar lo existente y detectar patrones genéricos), `design-taste-frontend` y `gpt-taste` (aplicar criterio de diseño). Cargarlas con la herramienta Skill (están en la lista de skills de la sesión). Alcance: **todas** las pantallas y componentes creados (login/recuperar contraseña, layout con menú lateral y barra inferior de celular, buscador global, Inicio, Recibir vehículo, Servicios y su ficha, Clientes y su ficha, Vehículo y su ficha, Recordatorios, formularios, tarjetas, estados vacíos, gráficos).
-Reglas para no romper el producto (de `CLAUDE.md` y de lo que pidió Pedro): mantener **simple, rápido y mobile-first** para un mecánico apurado; no agregar features nuevas; **DECISIÓN DE PEDRO: sin animaciones** (nada de GSAP, scroll-triggers ni motion; solo las transiciones mínimas que ya existen, como el hover o el menú). De `gpt-taste` usar únicamente lo estático (tipografía, espaciado, jerarquía, layout); **si lo que propone es sobre todo animación, se descarta esa skill**. Tampoco librerías nuevas sin consultar (la app debe seguir liviana para la PWA); conservar el flujo actual (Recibir por patente, buscador global, avisos de entrega, "Más datos" plegado); textos en español rioplatense; verificar en navegador (escritorio y celular, con sesión falsa + datos inyectados en `queryClient`, ver abajo) y con `npm run build` / `npm run lint`. Pedro no vio nada de esto con datos reales todavía, así que **mostrarle antes/después** y commitear por partes chicas. `brandkit` (logos) NO usarla: Pedro dijo que no. Al terminar, recién ahí seguir con la **Fase 6 (PWA)**; para eso hace falta un logo/ícono de Pedro (los íconos del manifest están vacíos).
-Cómo probar sin loguearse (Claude no usa la contraseña de Pedro): abrir `/login` en el navegador de Claude, inyectar en `localStorage` una sesión falsa con la clave `sb-yvpixnfacvffpwqsvdct-auth-token` (JWT de forma válida, `exp` a futuro, usuario `b61a328a-d5a6-44bd-bd1f-f84ddee9402b`) y cargar datos de ejemplo con `queryClient.setQueryData([...clave], datos)` importando `/src/lib/queryClient.ts`; al terminar `localStorage.clear()` y parar el servidor. El puerto 5199 lo suele ocupar Pedro: si Vite arranca en otro (5200), usar ese.
-Estado del repo: todo commiteado y pusheado en `main` (último: Fase 5 recordatorios). Sin commitear a propósito: `.agents/` y `skills-lock.json` (skills de otro agente; no incluir en commits, usar `git add -A -- . ':!.agents' ':!skills-lock.json'`).
-Otros pendientes de Pedro: clave SMTP de Brevo (Fase 2), aprobar los textos de WhatsApp, probar todo logueado, y decidir si quiere `find-skills` enlazada en `~/.claude/skills`.
-
-
-**Fase 0: completa y pusheada a GitHub** (`main`,
-`https://github.com/xpedrojfloresx/mechanic-services`).
-
-**Fase 1 (Base de datos y esquema en Supabase): completa.** La prueba de
-aislamiento entre talleres con un usuario real ya se hizo (ver más abajo) —
-queda cerrada del todo.
-
-**Fase 2 (Autenticación): completa para el MVP**, con una sola cosa
-pendiente a propósito: cargar la clave SMTP de Brevo (Pedro la va a mandar
-cuando la tenga; mientras tanto los mails de auth los manda el mailer propio
-de Supabase, que funciona pero no es para producción).
-
-**Fase 5 (Recordatorios): código escrito y probado por SQL/navegador con datos falsos; falta la prueba de Pedro logueado.** Ver "Fase 5" en "Hecho y verificado".
-
-**Fase 4 (Servicios e ítems): código escrito y probado por SQL/navegador con datos falsos; falta la prueba de Pedro logueado.** Ver "Fase 4" en "Hecho y verificado".
-
-**Fase 3 (Clientes, vehículos y búsqueda rápida): código escrito, falta que
-Pedro la pruebe logueado en el navegador** (Claude no puede loguearse: no
-usa la contraseña de Pedro). Ver "Qué falta (Fase 3)".
+Se usaron `redesign-existing-projects` (guía de auditoría y prioridades) y `design-taste-frontend` (solo las reglas que aplican a una app de producto: es una skill para landings y se declara fuera de alcance para dashboards/formularios). **`gpt-taste` se descartó por completo** (exige GSAP, hero cinematográfico y estructura de landing; Pedro dijo sin animaciones). `brandkit` no se usó. **No se agregaron librerías ni animaciones.**
+Cambios (todos estáticos): **paleta** con un único acento azul acero apagado (`--primary` `oklch(0.43 0.085 245)`) y grises con un leve tinte del mismo tono, en vez de grises puros y botones negros (modo oscuro definido en `index.css` aunque no hay interruptor); `chart-*` derivados del acento; **cifras tabulares** en todo el cuerpo y `text-wrap: balance/pretty`; **etiquetas cuadradas** (`Badge` pasó de píldora a `rounded-md`, coherente con botones e inputs); **componente `Patente`** (`components/patente.tsx`, estilo chapa con borde grueso y monoespaciada) en las 12 apariciones de patente; **componente `EmptyState`** (`components/empty-state.tsx`) para Inicio, Servicios, Clientes y Recordatorios; **página 404** (`routes/not-found.tsx`); enlace **"Saltar al contenido"** y se quitó un `<main>` anidado (`SidebarInset` ya es `<main>`); **favicon propio** (llave sobre el acento; reemplaza el rayo violeta de Vite), `meta description`/`theme-color` y `theme_color` del manifest; los 6 guiones largos usados como "sin dato" pasaron a "Sin teléfono/Sin email/Sin dato" o "-"; tarjeta "En el taller": aviso ámbar pegado al borde y motivo en 2 líneas en vez de cortado.
+Dos defectos reales encontrados en el camino y corregidos: las fichas mostraban "No encontramos..." si una **recarga en segundo plano** fallaba aunque ya tuvieran datos, y las listas mostraban "No pudimos cargar..." junto a los datos; ahora el error solo aparece si no hay nada que mostrar.
+Verificado en navegador (celular, con sesión y datos falsos) comparando antes/después del Inicio, ficha del servicio, estado vacío y 404; `npm run build` y `npm run lint` limpios. **Pedro todavía no lo vio con datos reales**: puede pedir otro acento (es una sola variable en `index.css`), otra forma de la patente o más/menos "aire".
+Lo que **no** se tocó a propósito: menú lateral (Pedro lo pidió), iconos `lucide` (cambiar a Phosphor sería una dependencia nueva), estructura del flujo (Recibir por patente, buscador global, avisos, "Más datos").
+**Siguiente: Fase 6 (PWA).** Falta un logo/ícono de Pedro para el manifest (`icons: []`); el favicon actual es provisorio.
+Estado del repo: pusheado en `main`. Sin commitear a propósito: `.agents/` y `skills-lock.json` (skills de otro agente).
+Cómo probar sin loguearse: sesión falsa en `localStorage` (`sb-yvpixnfacvffpwqsvdct-auth-token`) y datos con `queryClient.setQueryData` importando `/src/lib/queryClient.ts`; limpiar con `localStorage.clear()` y parar el servidor. Los cambios de archivos recargan la página y pierden los datos inyectados.
+Otros pendientes de Pedro: clave SMTP de Brevo (Fase 2), aprobar los textos de WhatsApp y los umbrales de aviso de entrega, probar todo logueado, decidir si quiere `find-skills` enlazada en `~/.claude/skills`.
 
 ## Hecho y verificado
 

@@ -6,10 +6,10 @@ import { VehiculoForm } from '@/features/vehiculos/components/vehiculo-form'
 export function VehiculoFormPage() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
-  const { data: vehiculo, isLoading, isError } = useVehiculo(id)
+  const { data: vehiculo, isLoading } = useVehiculo(id)
 
   if (id && isLoading) return <Skeleton className="h-64 w-full max-w-md" />
-  if (id && (isError || !vehiculo)) {
+  if (id && !vehiculo) {
     return (
       <p className="text-destructive text-sm">No encontramos el vehículo.</p>
     )

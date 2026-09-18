@@ -1,7 +1,9 @@
-import { Plus } from 'lucide-react'
+import { Plus, Wrench } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { Badge } from '@/components/ui/badge'
+import { Patente } from '@/components/patente'
+import { EmptyState } from '@/components/empty-state'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -12,10 +14,19 @@ import { diasDesde, formatearFecha, haceCuanto } from '@/lib/formato'
 
 type Filtro = 'en_curso' | 'entregado' | 'todos'
 
-const textoVacio: Record<Filtro, string> = {
-  en_curso: 'No hay vehículos en el taller.',
-  entregado: 'Todavía no hay vehículos entregados.',
-  todos: 'Todavía no hay servicios.',
+const textoVacio: Record<Filtro, { titulo: string; texto: string }> = {
+  en_curso: {
+    titulo: 'No hay vehículos en el taller',
+    texto: 'Cuando recibas uno, aparece acá.',
+  },
+  entregado: {
+    titulo: 'Todavía no hay vehículos entregados',
+    texto: 'Al entregar un auto queda guardado acá.',
+  },
+  todos: {
+    titulo: 'Todavía no hay servicios',
+    texto: 'Recibí un vehículo para cargar el primero.',
+  },
 }
 
 export function ServiciosPage() {
@@ -43,13 +54,17 @@ export function ServiciosPage() {
       </Tabs>
 
       {isLoading && <Skeleton className="h-16 w-full" />}
-      {isError && (
+      {isError && !servicios && (
         <p className="text-destructive text-sm">
           No pudimos cargar los servicios. Probá de nuevo.
         </p>
       )}
       {servicios?.length === 0 && (
-        <p className="text-muted-foreground text-sm">{textoVacio[filtro]}</p>
+        <EmptyState
+          icon={Wrench}
+          titulo={textoVacio[filtro].titulo}
+          texto={textoVacio[filtro].texto}
+        />
       )}
       {servicios?.map((s) => {
         const demorado =
@@ -65,9 +80,7 @@ export function ServiciosPage() {
                     {s.vehiculos?.clientes?.nombre}
                   </p>
                   <p className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
-                    <Badge variant="secondary" className="font-mono">
-                      {s.vehiculos?.patente}
-                    </Badge>
+                    <Patente size="sm">{s.vehiculos?.patente}</Patente>
                     {s.vehiculos?.marca} {s.vehiculos?.modelo}
                   </p>
                   <p className="text-muted-foreground truncate text-xs">

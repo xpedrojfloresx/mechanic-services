@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router'
 import { Badge } from '@/components/ui/badge'
+import { Patente } from '@/components/patente'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -14,12 +15,12 @@ import { formatearFecha } from '@/lib/formato'
 
 export function VehiculoDetallePage() {
   const { id } = useParams()
-  const { data: vehiculo, isLoading, isError } = useVehiculo(id)
+  const { data: vehiculo, isLoading } = useVehiculo(id)
   const { data: servicios } = useServiciosDeVehiculo(id)
   const { data: taller } = useTallerActual()
 
   if (isLoading) return <Skeleton className="h-40 w-full" />
-  if (isError || !vehiculo) {
+  if (!vehiculo) {
     return (
       <p className="text-destructive text-sm">No encontramos el vehículo.</p>
     )
@@ -30,7 +31,7 @@ export function VehiculoDetallePage() {
       <Card>
         <CardHeader className="flex-row items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-xl">
-            <Badge className="font-mono text-base">{vehiculo.patente}</Badge>
+            <Patente size="md">{vehiculo.patente}</Patente>
             {vehiculo.marca} {vehiculo.modelo}
           </CardTitle>
           <Button asChild variant="outline" size="sm">
@@ -40,11 +41,11 @@ export function VehiculoDetallePage() {
         <CardContent className="flex flex-col gap-1 text-sm">
           <p>
             <span className="text-muted-foreground">Año: </span>
-            {vehiculo.anio ?? '—'}
+            {vehiculo.anio ?? 'Sin dato'}
           </p>
           <p>
             <span className="text-muted-foreground">Color: </span>
-            {vehiculo.color || '—'}
+            {vehiculo.color || 'Sin dato'}
           </p>
           {vehiculo.clientes && (
             <>

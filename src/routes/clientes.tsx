@@ -1,4 +1,6 @@
 import { Link } from 'react-router'
+import { Users } from 'lucide-react'
+import { EmptyState } from '@/components/empty-state'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -17,15 +19,21 @@ export function ClientesPage() {
       </div>
 
       {isLoading && <Skeleton className="h-16 w-full" />}
-      {isError && (
+      {isError && !clientes && (
         <p className="text-destructive text-sm">
           No pudimos cargar los clientes. Probá de nuevo.
         </p>
       )}
       {clientes?.length === 0 && (
-        <p className="text-muted-foreground text-sm">
-          Todavía no cargaste ningún cliente. Se crean al recibir su vehículo.
-        </p>
+        <EmptyState
+          icon={Users}
+          titulo="Todavía no cargaste ningún cliente"
+          texto="Los clientes se crean al recibir su vehículo."
+        >
+          <Button asChild size="sm">
+            <Link to="/recibir">Recibir vehículo</Link>
+          </Button>
+        </EmptyState>
       )}
       {clientes?.map((c) => (
         <Link key={c.id} to={`/clientes/${c.id}`}>

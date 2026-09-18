@@ -5,10 +5,10 @@ import { useVehiculo } from '@/features/vehiculos/api'
 
 export function IngresoPage() {
   const { id } = useParams()
-  const { data: vehiculo, isLoading, isError } = useVehiculo(id)
+  const { data: vehiculo, isLoading } = useVehiculo(id)
 
   if (isLoading) return <Skeleton className="h-64 w-full max-w-md" />
-  if (isError || !vehiculo) {
+  if (!vehiculo) {
     return (
       <p className="text-destructive text-sm">No encontramos el vehículo.</p>
     )

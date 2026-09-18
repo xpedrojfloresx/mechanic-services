@@ -1,7 +1,7 @@
 import { Search } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { Badge } from '@/components/ui/badge'
+import { Patente } from '@/components/patente'
 import { Input } from '@/components/ui/input'
 import { MIN_CARACTERES_BUSQUEDA, useBusqueda } from '@/features/busqueda/api'
 import {
@@ -75,9 +75,7 @@ export function BuscadorGlobal() {
                   {v.clientes?.nombre}
                 </span>
               </span>
-              <Badge variant="secondary" className="font-mono">
-                {v.patente}
-              </Badge>
+              <Patente size="sm">{v.patente}</Patente>
             </Link>
           ))}
 
