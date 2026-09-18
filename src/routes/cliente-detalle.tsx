@@ -1,15 +1,41 @@
-import { Link, useParams } from 'react-router'
+import { useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useCliente } from '@/features/clientes/api'
+import { useCliente, useEliminarCliente } from '@/features/clientes/api'
 import { useVehiculosDeCliente } from '@/features/vehiculos/api'
 
 export function ClienteDetallePage() {
   const { id } = useParams()
   const { data: cliente, isLoading, isError } = useCliente(id)
   const { data: vehiculos } = useVehiculosDeCliente(id)
+  const eliminar = useEliminarCliente()
+  const navigate = useNavigate()
+  const [errorEliminar, setErrorEliminar] = useState(false)
+
+  async function confirmarEliminar() {
+    setErrorEliminar(false)
+    try {
+      await eliminar.mutateAsync(id!)
+      navigate('/clientes', { replace: true })
+    } catch (error) {
+      console.error('Error al eliminar el cliente:', error)
+      setErrorEliminar(true)
+    }
+  }
 
   if (isLoading) return <Skeleton className="h-40 w-full" />
   if (isError || !cliente) {
@@ -23,11 +49,51 @@ export function ClienteDetallePage() {
       <Card>
         <CardHeader className="flex-row items-center justify-between gap-2">
           <CardTitle className="text-xl">{cliente.nombre}</CardTitle>
-          <Button asChild variant="outline" size="sm">
-            <Link to={`/clientes/${cliente.id}/editar`}>Editar</Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link to={`/clientes/${cliente.id}/editar`}>Editar</Link>
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive"
+                >
+                  Eliminar
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    ¿Eliminar a {cliente.nombre}?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {vehiculos && vehiculos.length > 0
+                      ? `Se van a eliminar también sus ${vehiculos.length} vehículo(s) y todo su historial de servicios.`
+                      : 'Se elimina el cliente.'}{' '}
+                    Esta acción no se puede deshacer.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    variant="destructive"
+                    onClick={confirmarEliminar}
+                  >
+                    Eliminar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-1 text-sm">
+          {errorEliminar && (
+            <p className="text-destructive">
+              No pudimos eliminar el cliente. Probá de nuevo.
+            </p>
+          )}
           <p>
             <span className="text-muted-foreground">Teléfono: </span>
             {cliente.telefono || '—'}

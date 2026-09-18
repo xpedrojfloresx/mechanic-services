@@ -8,11 +8,21 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useUsuarioActual } from '@/features/auth/hooks/use-usuario-actual'
 import { useGuardarCliente } from '@/features/clientes/api'
+import {
+  esTelefonoValido,
+  normalizarTelefono,
+} from '@/features/clientes/telefono'
 import type { Tables } from '@/lib/database.types'
 
 const schema = z.object({
   nombre: z.string().trim().min(1, 'Ingresá el nombre'),
-  telefono: z.string().trim(),
+  telefono: z
+    .string()
+    .trim()
+    .refine(
+      esTelefonoValido,
+      'Teléfono inválido. Solo números, formato Argentina o Chile',
+    ),
   email: z
     .string()
     .trim()
@@ -50,7 +60,7 @@ export function ClienteForm({ cliente }: { cliente?: Tables<'clientes'> }) {
         id: cliente?.id,
         values: {
           nombre: values.nombre,
-          telefono: values.telefono || null,
+          telefono: normalizarTelefono(values.telefono) || null,
           email: values.email || null,
         },
       })

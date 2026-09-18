@@ -85,3 +85,26 @@ export function useGuardarCliente(tallerId: string | undefined) {
     },
   })
 }
+
+// Borra el cliente; en la base se borran en cascada sus vehículos y servicios.
+export function useEliminarCliente() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('clientes').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      for (const key of [
+        'clientes',
+        'vehiculos',
+        'busqueda',
+        'conteos',
+        'serie-altas',
+      ]) {
+        queryClient.invalidateQueries({ queryKey: [key] })
+      }
+    },
+  })
+}

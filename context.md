@@ -35,6 +35,8 @@ usa la contraseña de Pedro). Ver "Qué falta (Fase 3)".
 - Verificado: lógica de rangos con un script (7/30/12 barras, un alta a las 23:30 locales cae en su día); en navegador con sesión falsa y datos de ejemplo inyectados en el cache de TanStack Query (no datos reales): los tres filtros cambian el gráfico y el total. Falta verlo con datos reales de Pedro.
 - **Interpretación a confirmar**: "cantidad de clientes que se tuvo" se tomó como *clientes nuevos cargados por período* (fecha de alta). Cuando existan los servicios (Fase 4) se puede agregar "clientes atendidos" (con al menos un servicio en el período).
 - **Límite conocido**: los gráficos traen las fechas y agrupan en el navegador; PostgREST devuelve máximo 1000 filas por consulta. Si un taller supera 1000 altas en un año, pasar el agrupado a una función SQL.
+- **Teléfono solo números, formatos Argentina y Chile** (pedido de Pedro; "asa" se aceptaba): `features/clientes/telefono.ts`. Acepta separadores (espacios, guiones, paréntesis, puntos) y un `+` inicial, y guarda **solo dígitos**. Formatos: AR = 10 dígitos, o con 0 (11), o con 54 (12) / 549 celular (13); CL = 9 dígitos, o con 56 (11). Vacío es válido (opcional). Probado con 13 casos. **Supuesto a confirmar**: los largos salen de mi conocimiento general de los planes de numeración, no de una fuente oficial; no se acepta el prefijo `15` de Argentina.
+- **Eliminar clientes** (pedido de Pedro): botón en la ficha con diálogo de confirmación (avisa cuántos vehículos se borran). Migración `20260918000003_cascade_delete.sql` (aplicada): `vehiculos.cliente_id` y `servicios.vehiculo_id` pasan a `on delete cascade`, así que borrar un cliente **elimina sus vehículos y su historial de servicios, sin deshacer**. Probado con RLS: el vehículo desaparece con el cliente y no quedan restos.
 
 ## Hecho y verificado (Fases 0–2)
 
@@ -83,7 +85,8 @@ usa la contraseña de Pedro). Ver "Qué falta (Fase 3)".
 
 - [ ] **Pedro prueba logueado** (`npm run dev`, http://localhost:5199): cargar un cliente, agregarle un vehículo, buscarlo por parte de la patente y por parte del nombre, editar ambos, probar patente inválida y duplicada. Recién ahí se marca la fase como hecha.
 - [ ] Probar en el celular (uso principal: responder por WhatsApp).
-- Sin borrado de clientes/vehículos (el plan pide alta/edición/listado). Decidir más adelante si hace falta.
+- Borrado de vehículos: todavía no existe (solo de clientes). Pedir si se necesita.
+- **Pendiente de definir con Pedro**: formulario opcional de "recepción del vehículo" al crear un cliente (estado en que llegó, kilometraje, otros datos). Ver preguntas en la conversación; se apoya en la tabla `servicios` de la Fase 4.
 
 ## Qué falta (Fase 0)
 
