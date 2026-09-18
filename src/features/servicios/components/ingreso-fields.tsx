@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea'
 import type { IngresoValues } from '@/features/servicios/schema'
 
 // Campos del ingreso del vehículo. Se usa dentro de un formulario cuyo
-// esquema tiene una clave `ingreso` (creación de cliente y nuevo ingreso).
+// esquema tiene una clave `ingreso`. Lo único opcional es el estado.
 export function IngresoFields() {
   const {
     register,
@@ -50,7 +50,7 @@ export function IngresoFields() {
       </FormField>
       <FormField
         id="ingreso-estado"
-        label="Estado en que llegó el vehículo"
+        label="Estado en que llegó el vehículo (opcional)"
         error={e?.estado?.message}
       >
         <Textarea
@@ -58,17 +58,6 @@ export function IngresoFields() {
           rows={3}
           placeholder="Ej: rayón en puerta derecha, luz de check engine encendida"
           {...register('ingreso.estado')}
-        />
-      </FormField>
-      <FormField
-        id="ingreso-obs"
-        label="Observaciones (opcional)"
-        error={e?.observaciones?.message}
-      >
-        <Textarea
-          id="ingreso-obs"
-          rows={2}
-          {...register('ingreso.observaciones')}
         />
       </FormField>
     </div>

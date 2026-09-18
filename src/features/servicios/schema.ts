@@ -6,6 +6,17 @@ export function hoyLocal() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
+// Forma de los campos, sin reglas (sirve para formularios donde el ingreso
+// es opcional y solo se valida si se completó algo).
+export const ingresoCampos = z.object({
+  fecha_ingreso: z.string(),
+  km: z.string(),
+  motivo: z.string(),
+  estado: z.string(),
+})
+
+// Ingreso completo: fecha, km y motivo son obligatorios; el estado en que
+// llegó el vehículo es lo único opcional.
 export const ingresoSchema = z.object({
   fecha_ingreso: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida'),
   km: z
@@ -13,19 +24,31 @@ export const ingresoSchema = z.object({
     .trim()
     .regex(/^\d+$/, 'Ingresá el kilometraje (solo números)')
     .refine((v) => Number(v) <= 3_000_000, 'Kilometraje inválido'),
-  motivo: z.string().trim(),
+  motivo: z.string().trim().min(1, 'Ingresá el motivo de ingreso'),
   estado: z.string().trim(),
-  observaciones: z.string().trim(),
 })
 
 export type IngresoValues = z.infer<typeof ingresoSchema>
+
+// Ingreso opcional: si no se completó ni km, ni motivo, ni estado, se ignora;
+// si se completó algo, tiene que cumplir las reglas del ingreso completo.
+export const ingresoTieneDatos = (v: IngresoValues) =>
+  [v.km, v.motivo, v.estado].some((c) => c.trim() !== '')
+
+export const ingresoOpcionalSchema = ingresoCampos.superRefine((v, ctx) => {
+  if (!ingresoTieneDatos(v)) return
+  const resultado = ingresoSchema.safeParse(v)
+  if (resultado.success) return
+  for (const issue of resultado.error.issues) {
+    ctx.addIssue({ code: 'custom', message: issue.message, path: issue.path })
+  }
+})
 
 export const ingresoVacio = (): IngresoValues => ({
   fecha_ingreso: hoyLocal(),
   km: '',
   motivo: '',
   estado: '',
-  observaciones: '',
 })
 
 // Valores del formulario -> lo que se manda a la base.
@@ -33,8 +56,7 @@ export function ingresoAInput(v: IngresoValues) {
   return {
     fecha_ingreso: v.fecha_ingreso,
     km_al_ingreso: Number(v.km),
-    motivo_ingreso: v.motivo || null,
+    motivo_ingreso: v.motivo,
     estado_al_ingreso: v.estado || null,
-    observaciones: v.observaciones || null,
   }
 }

@@ -352,6 +352,10 @@ export type Database = {
         Args: { p_cliente: Json; p_ingreso?: Json; p_vehiculo?: Json }
         Returns: string
       }
+      crear_vehiculo_con_ingreso: {
+        Args: { p_cliente_id: string; p_ingreso: Json; p_vehiculo: Json }
+        Returns: string
+      }
       current_taller_id: { Args: never; Returns: string }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }

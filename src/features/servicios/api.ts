@@ -7,7 +7,7 @@ export type IngresoInput = {
   km_al_ingreso: number
   motivo_ingreso: string | null
   estado_al_ingreso: string | null
-  observaciones: string | null
+  observaciones?: string | null
 }
 
 export function useServiciosDeVehiculo(vehiculoId: string | undefined) {
@@ -74,6 +74,38 @@ export function useCrearClienteCompleto() {
     onSuccess: () => {
       for (const key of [
         'clientes',
+        'vehiculos',
+        'servicios',
+        'busqueda',
+        'conteos',
+        'serie-altas',
+      ]) {
+        queryClient.invalidateQueries({ queryKey: [key] })
+      }
+    },
+  })
+}
+
+// Vehículo + ingreso en una sola transacción (función SQL).
+export function useCrearVehiculoConIngreso() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (args: {
+      clienteId: string
+      vehiculo: Json
+      ingreso: Json
+    }) => {
+      const { data, error } = await supabase.rpc('crear_vehiculo_con_ingreso', {
+        p_cliente_id: args.clienteId,
+        p_vehiculo: args.vehiculo,
+        p_ingreso: args.ingreso,
+      })
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      for (const key of [
         'vehiculos',
         'servicios',
         'busqueda',
