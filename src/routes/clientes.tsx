@@ -12,7 +12,7 @@ export function ClientesPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Clientes</h1>
         <Button asChild size="sm">
-          <Link to="/clientes/nuevo">Nuevo cliente</Link>
+          <Link to="/recibir">Recibir vehículo</Link>
         </Button>
       </div>
 
@@ -24,7 +24,7 @@ export function ClientesPage() {
       )}
       {clientes?.length === 0 && (
         <p className="text-muted-foreground text-sm">
-          Todavía no cargaste ningún cliente.
+          Todavía no cargaste ningún cliente. Se crean al recibir su vehículo.
         </p>
       )}
       {clientes?.map((c) => (

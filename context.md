@@ -22,6 +22,21 @@ usa la contraseña de Pedro). Ver "Qué falta (Fase 3)".
 
 ## Hecho y verificado
 
+### Servicios múltiples, cliente visible y olvido de la entrega (2026-09-18, pedido de Pedro)
+
+Pedro pidió tres cosas; **no respondió** las dos preguntas de diseño que le hice (estructura de "servicio" y dónde vive "Añadir servicio"), así que se aplicó lo recomendado — **confirmar o corregir**.
+
+- **Varios servicios en un mismo ingreso**: un ingreso tiene una lista de **"Servicios realizados"** (renglones: qué se hizo, cantidad, precio opcional). Es la tabla `servicio_items` de antes con otro nombre en pantalla (ya no se dice "repuestos y mano de obra"; un repuesto se carga igual, como un renglón). Componente `AgregarServiciosForm` (React Hook Form `useFieldArray`): un bloque por servicio, botón "Añadir otro servicio", quitar bloque, y **un solo Guardar** ("Guardar 3 servicios") que inserta todo junto (`useGuardarItems`). Se usa en la ficha del ingreso (botón "Añadir servicios") y en la pantalla nueva.
+- **"Añadir servicio" en la pestaña Servicios** (`/servicios/nuevo`): 1) buscar el auto por patente o nombre del cliente, 2) se usa su ingreso abierto (si tiene varios, elige cuál; si no tiene ninguno, manda a "Recibir vehículo"), 3) se cargan todos los servicios y se cae en la ficha del ingreso. No permite cargar servicios a un ingreso ya entregado.
+- **Cliente siempre visible en Servicios**: en la lista y en las tarjetas del Inicio el **nombre del cliente va primero** (en negrita), y en la ficha del ingreso es el título con su teléfono (toca para llamar) y el vehículo debajo. Antes el cliente quedaba como texto gris secundario.
+- **Que no dependa de que el mecánico se acuerde de marcar la entrega**:
+  - Pestaña Servicios ahora abre en **"En el taller"** (En taller + Listo; antes los *Listo* quedaban ocultos) y sus filtros son En el taller / Entregados / Todos.
+  - Un vehículo que lleva **5+ días "En taller" o 2+ días "Listo"** muestra "¿Ya se entregó?": en el Inicio con botones **"Ya se entregó"** (lo pasa a Entregado con fecha de hoy) y "Sigue acá" (oculta el aviso esa sesión); en la lista de Servicios como marca ámbar. **Umbrales propuestos por mí**, en `DIAS_PARA_PREGUNTAR` (`features/servicios/estados.ts`).
+  - **Al recibir un auto que todavía figura abierto** (`/recibir`), antes de abrir el ingreso nuevo se pregunta "¿Ya se entregó?": "Sí, ya se entregó: recibirlo de nuevo" (cierra los ingresos anteriores y sigue) o "Todavía está acá: ver ese ingreso". Así un auto no queda "en el taller" para siempre.
+  - Pendiente si se quiere: elegir otra fecha de entrega al cerrar (hoy se usa la fecha del día en que se marca), aviso también en el menú, o cerrar automáticamente tras N días.
+- Verificado en navegador con sesión y datos falsos: tarjeta con aviso a los 7 días, lista con cliente primero y marca ámbar, ficha con cliente/teléfono, flujo Añadir servicio (búsqueda → ingreso abierto → 2 bloques → botón "Guardar 2 servicios", bloque vacío pide descripción, quitar bloque), y el control en Recibir. **Falta** la prueba de Pedro con datos reales.
+- **Estado del repo**: el rediseño del flujo y estos cambios están **sin commitear** (Pedro rechazó el commit en el momento; esperar su OK).
+
 ### Fase 4 (2026-09-18)
 
 - **Estado del servicio con lista fija** (elegido por Pedro): `en_taller` (por defecto) / `listo` / `entregado`. Migración `20260918000006_estado_servicio.sql` (aplicada): `estado` pasa a `not null default 'en_taller'` con `check`, los existentes se completaron, índice `(taller_id, estado)`. Al pasar a *Entregado* se guarda `fecha_entrega` (hoy); si se vuelve atrás se borra. Etiquetas en `features/servicios/estados.ts`.

@@ -10,7 +10,10 @@ import {
   esTelefonoValido,
   normalizarTelefono,
 } from '@/features/clientes/telefono'
-import { useCrearClienteCompleto } from '@/features/servicios/api'
+import {
+  buscarUltimoServicioIdPorPatente,
+  useCrearClienteCompleto,
+} from '@/features/servicios/api'
 import { IngresoFields } from '@/features/servicios/components/ingreso-fields'
 import {
   ingresoAInput,
@@ -43,7 +46,11 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-export function ClienteNuevoForm() {
+export function ClienteNuevoForm({
+  patenteInicial,
+}: {
+  patenteInicial?: string
+}) {
   const navigate = useNavigate()
   const crear = useCrearClienteCompleto()
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
@@ -54,7 +61,13 @@ export function ClienteNuevoForm() {
       nombre: '',
       telefono: '',
       email: '',
-      vehiculo: { patente: '', marca: '', modelo: '', anio: '', color: '' },
+      vehiculo: {
+        patente: patenteInicial ?? '',
+        marca: '',
+        modelo: '',
+        anio: '',
+        color: '',
+      },
       ingreso: ingresoVacio(),
     },
   })
@@ -79,7 +92,13 @@ export function ClienteNuevoForm() {
         },
         ingreso: ingresoAInput(v.ingreso),
       })
-      navigate(`/clientes/${id}`, { replace: true })
+      // Cae directo en el servicio recién creado para cargar repuestos.
+      const servicioId = await buscarUltimoServicioIdPorPatente(
+        normalizarPatente(v.vehiculo.patente),
+      )
+      navigate(servicioId ? `/servicios/${servicioId}` : `/clientes/${id}`, {
+        replace: true,
+      })
     } catch (error) {
       console.error('Error al crear el cliente:', error)
       // 23505 = violación de unicidad (patente repetida en el taller)

@@ -72,3 +72,20 @@ export function useGuardarVehiculo(tallerId: string | undefined) {
     },
   })
 }
+
+// Patente ya normalizada (mayúsculas, sin separadores). null si no existe.
+export function useVehiculoPorPatente(patente: string | null) {
+  return useQuery({
+    queryKey: ['vehiculos', 'patente', patente],
+    enabled: !!patente,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vehiculos')
+        .select('*, clientes(id, nombre, telefono)')
+        .eq('patente', patente!)
+        .maybeSingle()
+      if (error) throw error
+      return data
+    },
+  })
+}

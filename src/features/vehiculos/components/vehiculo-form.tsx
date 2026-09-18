@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { useUsuarioActual } from '@/features/auth/hooks/use-usuario-actual'
 import {
+  buscarUltimoServicioIdPorPatente,
   useCrearIngreso,
   useCrearVehiculoConIngreso,
 } from '@/features/servicios/api'
@@ -39,9 +40,14 @@ type FormValues = z.infer<typeof schemaCreacion>
 type VehiculoFormProps = {
   clienteId: string
   vehiculo?: Tables<'vehiculos'>
+  patenteInicial?: string
 }
 
-export function VehiculoForm({ clienteId, vehiculo }: VehiculoFormProps) {
+export function VehiculoForm({
+  clienteId,
+  vehiculo,
+  patenteInicial,
+}: VehiculoFormProps) {
   const navigate = useNavigate()
   const { data: usuario } = useUsuarioActual()
   const guardar = useGuardarVehiculo(usuario?.taller_id)
@@ -54,7 +60,7 @@ export function VehiculoForm({ clienteId, vehiculo }: VehiculoFormProps) {
     resolver: zodResolver(editando ? schemaEdicion : schemaCreacion),
     defaultValues: {
       vehiculo: {
-        patente: vehiculo?.patente ?? '',
+        patente: vehiculo?.patente ?? patenteInicial ?? '',
         marca: vehiculo?.marca ?? '',
         modelo: vehiculo?.modelo ?? '',
         anio: vehiculo?.anio?.toString() ?? '',
@@ -93,7 +99,15 @@ export function VehiculoForm({ clienteId, vehiculo }: VehiculoFormProps) {
           ingreso: ingresoAInput(v.ingreso),
         })
       }
-      navigate(`/vehiculos/${vehiculoId}`, { replace: true })
+      // Al dar de alta un vehículo se cae directo en su servicio (para cargar
+      // repuestos); al editar se vuelve a la ficha del vehículo.
+      const servicioId = vehiculo
+        ? null
+        : await buscarUltimoServicioIdPorPatente(datosVehiculo.patente)
+      navigate(
+        servicioId ? `/servicios/${servicioId}` : `/vehiculos/${vehiculoId}`,
+        { replace: true },
+      )
     } catch (error) {
       console.error('Error al guardar el vehículo:', error)
       // 23505 = violación de unicidad (patente repetida en el taller)

@@ -11,9 +11,11 @@ import { ForgotPasswordPage } from '@/routes/forgot-password'
 import { HomePage } from '@/routes/home'
 import { IngresoPage } from '@/routes/ingreso-page'
 import { LoginPage } from '@/routes/login'
+import { RecibirPage } from '@/routes/recibir'
 import { ResetPasswordPage } from '@/routes/reset-password'
 import { ServicioDetallePage } from '@/routes/servicio-detalle'
 import { ServicioEditarPage } from '@/routes/servicio-editar-page'
+import { ServicioNuevoPage } from '@/routes/servicio-nuevo'
 import { ServiciosPage } from '@/routes/servicios'
 import { VehiculoDetallePage } from '@/routes/vehiculo-detalle'
 import { VehiculoFormPage } from '@/routes/vehiculo-form-page'
@@ -35,8 +37,10 @@ function App() {
         <Route element={<RequireAuth />}>
           <Route element={<AppLayout />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/recibir" element={<RecibirPage />} />
             <Route path="/clientes" element={<ClientesPage />} />
             <Route path="/servicios" element={<ServiciosPage />} />
+            <Route path="/servicios/nuevo" element={<ServicioNuevoPage />} />
             <Route path="/servicios/:id" element={<ServicioDetallePage />} />
             <Route
               path="/servicios/:id/editar"

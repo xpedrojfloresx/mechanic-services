@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Json, TablesUpdate } from '@/lib/database.types'
-import type { Estado } from './estados'
+import { valoresCambioEstado, type Estado } from './estados'
 
 export type IngresoInput = {
   fecha_ingreso: string
@@ -122,7 +122,7 @@ export function useCrearVehiculoConIngreso() {
 const SELECT_CON_VEHICULO =
   '*, vehiculos(id, patente, marca, modelo, clientes(id, nombre, telefono))'
 
-export function useServicios(estado: Estado | 'todos') {
+export function useServicios(estado: Estado | 'todos' | 'en_curso') {
   return useQuery({
     queryKey: ['servicios', 'lista', estado],
     queryFn: async () => {
@@ -132,7 +132,18 @@ export function useServicios(estado: Estado | 'todos') {
         .order('fecha_ingreso', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(200)
-      if (estado !== 'todos') consulta = consulta.eq('estado', estado)
+      if (estado === 'en_curso') {
+        // En el taller ahora: lo más viejo primero
+        consulta = supabase
+          .from('servicios')
+          .select(SELECT_CON_VEHICULO)
+          .in('estado', ['en_taller', 'listo'])
+          .order('fecha_ingreso', { ascending: true })
+          .order('created_at', { ascending: true })
+          .limit(200)
+      } else if (estado !== 'todos') {
+        consulta = consulta.eq('estado', estado)
+      }
       const { data, error } = await consulta
       if (error) throw error
       return data
@@ -260,6 +271,63 @@ export function useEliminarItem() {
         .from('servicio_items')
         .delete()
         .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => invalidarServicios(queryClient),
+  })
+}
+
+// Después de crear cliente/vehículo + ingreso por función SQL, busca el
+// servicio recién creado (el más nuevo de esa patente) para ir directo a él.
+export async function buscarUltimoServicioIdPorPatente(patente: string) {
+  const { data, error } = await supabase
+    .from('servicios')
+    .select('id, vehiculos!inner(patente)')
+    .eq('vehiculos.patente', patente)
+    .order('created_at', { ascending: false })
+    .limit(1)
+  if (error) throw error
+  return data[0]?.id ?? null
+}
+
+// Varios servicios (renglones) de una sola vez sobre un ingreso.
+export function useGuardarItems(tallerId: string | undefined) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      servicioId,
+      items,
+    }: {
+      servicioId: string
+      items: ItemInput[]
+    }) => {
+      if (!tallerId) throw new Error('Falta el taller del usuario')
+      const { error } = await supabase
+        .from('servicio_items')
+        .insert(
+          items.map((i) => ({
+            ...i,
+            servicio_id: servicioId,
+            taller_id: tallerId,
+          })),
+        )
+      if (error) throw error
+    },
+    onSuccess: () => invalidarServicios(queryClient),
+  })
+}
+
+// "Ya se entregó": cierra uno o varios ingresos abiertos con fecha de hoy.
+export function useCerrarServicios() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from('servicios')
+        .update(valoresCambioEstado('entregado', null))
+        .in('id', ids)
       if (error) throw error
     },
     onSuccess: () => invalidarServicios(queryClient),

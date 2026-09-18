@@ -1,26 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { ItemInput } from '@/features/servicios/api'
+import {
+  itemAInput,
+  itemSchema,
+  itemVacio,
+  type ItemValues,
+} from '@/features/servicios/schema'
 import type { Tables } from '@/lib/database.types'
 
-// Acepta coma o punto como separador decimal.
-const aNumero = (v: string) => Number(v.trim().replace(',', '.'))
-
-const schema = z.object({
-  descripcion: z.string().trim().min(1, 'Ingresá la descripción'),
-  cantidad: z
-    .string()
-    .refine((v) => v.trim() !== '' && aNumero(v) > 0, 'Cantidad inválida'),
-  precio: z
-    .string()
-    .refine((v) => v.trim() === '' || aNumero(v) >= 0, 'Precio inválido'),
-})
-
-type FormValues = z.infer<typeof schema>
+type FormValues = ItemValues
 
 type ItemFormProps = {
   item?: Tables<'servicio_items'>
@@ -36,7 +28,7 @@ export function ItemForm({ item, onGuardar, onCancelar }: ItemFormProps) {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(itemSchema),
     defaultValues: {
       descripcion: item?.descripcion ?? '',
       cantidad: item ? String(item.cantidad) : '1',
@@ -47,12 +39,8 @@ export function ItemForm({ item, onGuardar, onCancelar }: ItemFormProps) {
   async function onSubmit(v: FormValues) {
     setError(null)
     try {
-      await onGuardar({
-        descripcion: v.descripcion,
-        cantidad: aNumero(v.cantidad),
-        precio: v.precio.trim() === '' ? null : aNumero(v.precio),
-      })
-      if (!item) reset({ descripcion: '', cantidad: '1', precio: '' })
+      await onGuardar(itemAInput(v))
+      if (!item) reset(itemVacio())
     } catch (e) {
       console.error('Error al guardar el ítem:', e)
       setError('No pudimos guardar el ítem. Probá de nuevo.')

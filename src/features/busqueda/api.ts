@@ -1,11 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
+import { escaparLike } from '@/lib/like'
 import { supabase } from '@/lib/supabase'
 import { normalizarPatente } from '@/features/vehiculos/patente'
-
-// Escapa los comodines de LIKE para que el texto se busque literal.
-function escaparLike(texto: string) {
-  return texto.replace(/[\\%_]/g, (c) => `\\${c}`)
-}
 
 export const MIN_CARACTERES_BUSQUEDA = 2
 

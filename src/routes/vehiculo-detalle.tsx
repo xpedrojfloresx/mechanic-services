@@ -60,7 +60,9 @@ export function VehiculoDetallePage() {
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">Historial de servicios</h2>
           <Button asChild size="sm">
-            <Link to={`/vehiculos/${vehiculo.id}/ingreso`}>Nuevo ingreso</Link>
+            <Link to={`/recibir?patente=${vehiculo.patente}`}>
+              Recibir vehículo
+            </Link>
           </Button>
         </div>
         {servicios?.length === 0 && (

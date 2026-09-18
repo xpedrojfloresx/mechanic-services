@@ -20,9 +20,8 @@ import {
   useEliminarServicio,
   useServicio,
 } from '@/features/servicios/api'
-import { ESTADOS } from '@/features/servicios/estados'
+import { ESTADOS, valoresCambioEstado } from '@/features/servicios/estados'
 import { ItemsSection } from '@/features/servicios/components/items-section'
-import { hoyLocal } from '@/features/servicios/schema'
 import { formatearFecha } from '@/lib/formato'
 
 export function ServicioDetallePage() {
@@ -49,14 +48,7 @@ export function ServicioDetallePage() {
     try {
       await actualizar.mutateAsync({
         id: servicio.id,
-        values: {
-          estado,
-          // Al entregar se guarda la fecha de entrega; si vuelve atrás, se limpia.
-          fecha_entrega:
-            estado === 'entregado'
-              ? (servicio.fecha_entrega ?? hoyLocal())
-              : null,
-        },
+        values: valoresCambioEstado(estado, servicio.fecha_entrega),
       })
     } catch (e) {
       console.error('Error al cambiar el estado:', e)
@@ -82,25 +74,34 @@ export function ServicioDetallePage() {
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader className="flex-row items-start justify-between gap-2">
-          <div className="flex flex-col gap-1">
-            <CardTitle className="flex flex-wrap items-center gap-2 text-xl">
+          <div className="flex min-w-0 flex-col gap-1">
+            {/* El cliente va primero y bien visible: es lo que se recuerda. */}
+            {cliente && (
+              <CardTitle className="text-xl">
+                <Link
+                  to={`/clientes/${cliente.id}`}
+                  className="underline-offset-4 hover:underline"
+                >
+                  {cliente.nombre}
+                </Link>
+              </CardTitle>
+            )}
+            {cliente?.telefono && (
+              <a
+                href={`tel:${cliente.telefono}`}
+                className="text-muted-foreground text-sm underline underline-offset-4"
+              >
+                {cliente.telefono}
+              </a>
+            )}
+            <p className="mt-1 flex flex-wrap items-center gap-2 text-sm">
               {vehiculo && (
                 <Link to={`/vehiculos/${vehiculo.id}`}>
-                  <Badge className="font-mono text-base">
-                    {vehiculo.patente}
-                  </Badge>
+                  <Badge className="font-mono">{vehiculo.patente}</Badge>
                 </Link>
               )}
               {vehiculo?.marca} {vehiculo?.modelo}
-            </CardTitle>
-            {cliente && (
-              <Link
-                to={`/clientes/${cliente.id}`}
-                className="text-muted-foreground text-sm underline underline-offset-4"
-              >
-                {cliente.nombre}
-              </Link>
-            )}
+            </p>
           </div>
           <div className="flex gap-2">
             <Button asChild variant="outline" size="sm">
@@ -155,6 +156,16 @@ export function ServicioDetallePage() {
             </div>
           </div>
           {error && <p className="text-destructive">{error}</p>}
+        </CardContent>
+      </Card>
+
+      <ItemsSection servicioId={servicio.id} />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Datos del ingreso</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm">
           <div className="flex flex-col gap-1">
             <p>
               <span className="text-muted-foreground">Ingreso: </span>
@@ -182,8 +193,6 @@ export function ServicioDetallePage() {
           </div>
         </CardContent>
       </Card>
-
-      <ItemsSection servicioId={servicio.id} />
     </div>
   )
 }

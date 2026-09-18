@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { escaparLike } from '@/lib/like'
 import { supabase } from '@/lib/supabase'
 import type { TablesInsert } from '@/lib/database.types'
 
@@ -105,6 +106,24 @@ export function useEliminarCliente() {
       ]) {
         queryClient.invalidateQueries({ queryKey: [key] })
       }
+    },
+  })
+}
+
+export function useClientesPorNombre(texto: string) {
+  const q = texto.trim()
+  return useQuery({
+    queryKey: ['clientes', 'buscar', q],
+    enabled: q.length >= 2,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clientes')
+        .select('*')
+        .ilike('nombre', `%${escaparLike(q)}%`)
+        .order('nombre')
+        .limit(8)
+      if (error) throw error
+      return data
     },
   })
 }

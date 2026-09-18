@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useUsuarioActual } from '@/features/auth/hooks/use-usuario-actual'
@@ -7,6 +8,7 @@ import {
   useGuardarItem,
   useItems,
 } from '@/features/servicios/api'
+import { AgregarServiciosForm } from '@/features/servicios/components/agregar-servicios-form'
 import { ItemForm } from '@/features/servicios/components/item-form'
 import { formatoNumero } from '@/lib/formato'
 
@@ -16,6 +18,9 @@ export function ItemsSection({ servicioId }: { servicioId: string }) {
   const guardar = useGuardarItem(usuario?.taller_id)
   const eliminar = useEliminarItem()
   const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [agregando, setAgregando] = useState(false)
+  // Sin servicios cargados el formulario ya viene abierto.
+  const mostrarFormulario = agregando || (!isLoading && items?.length === 0)
 
   const total = (items ?? []).reduce(
     (suma, i) => suma + i.cantidad * (i.precio ?? 0),
@@ -25,14 +30,14 @@ export function ItemsSection({ servicioId }: { servicioId: string }) {
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="font-semibold">Repuestos y mano de obra</h2>
+      <h2 className="font-semibold">Servicios realizados</h2>
 
       {isLoading && (
         <p className="text-muted-foreground text-sm">Cargando...</p>
       )}
       {items?.length === 0 && (
         <p className="text-muted-foreground text-sm">
-          Todavía no cargaste ítems en este servicio.
+          Todavía no cargaste ningún servicio en este ingreso.
         </p>
       )}
 
@@ -94,13 +99,17 @@ export function ItemsSection({ servicioId }: { servicioId: string }) {
         </p>
       )}
 
-      <Card>
-        <CardContent>
-          <ItemForm
-            onGuardar={(values) => guardar.mutateAsync({ servicioId, values })}
-          />
-        </CardContent>
-      </Card>
+      {mostrarFormulario ? (
+        <AgregarServiciosForm
+          servicioId={servicioId}
+          onGuardado={() => setAgregando(false)}
+          onCancelar={items?.length ? () => setAgregando(false) : undefined}
+        />
+      ) : (
+        <Button variant="outline" onClick={() => setAgregando(true)}>
+          <Plus /> Añadir servicios
+        </Button>
+      )}
     </section>
   )
 }

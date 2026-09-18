@@ -55,8 +55,8 @@ export function IngresoForm({ vehiculoId, servicio }: IngresoFormProps) {
         await actualizar.mutateAsync({ id: servicio.id, values: datos })
         navigate(`/servicios/${servicio.id}`, { replace: true })
       } else {
-        await crear.mutateAsync({ vehiculoId, values: datos })
-        navigate(`/vehiculos/${vehiculoId}`, { replace: true })
+        const nuevo = await crear.mutateAsync({ vehiculoId, values: datos })
+        navigate(`/servicios/${nuevo.id}`, { replace: true })
       }
     } catch (error) {
       console.error('Error al guardar el ingreso:', error)

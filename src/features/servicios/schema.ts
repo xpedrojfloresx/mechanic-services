@@ -60,3 +60,33 @@ export function ingresoAInput(v: IngresoValues) {
     estado_al_ingreso: v.estado || null,
   }
 }
+
+// Renglón de servicio realizado (o repuesto/mano de obra). Acepta coma o
+// punto como separador decimal.
+export const aNumero = (v: string) => Number(v.trim().replace(',', '.'))
+
+export const itemSchema = z.object({
+  descripcion: z.string().trim().min(1, 'Ingresá qué se hizo'),
+  cantidad: z
+    .string()
+    .refine((v) => v.trim() !== '' && aNumero(v) > 0, 'Cantidad inválida'),
+  precio: z
+    .string()
+    .refine((v) => v.trim() === '' || aNumero(v) >= 0, 'Precio inválido'),
+})
+
+export type ItemValues = z.infer<typeof itemSchema>
+
+export const itemVacio = (): ItemValues => ({
+  descripcion: '',
+  cantidad: '1',
+  precio: '',
+})
+
+export function itemAInput(v: ItemValues) {
+  return {
+    descripcion: v.descripcion.trim(),
+    cantidad: aNumero(v.cantidad),
+    precio: v.precio.trim() === '' ? null : aNumero(v.precio),
+  }
+}

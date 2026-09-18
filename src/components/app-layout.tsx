@@ -1,12 +1,12 @@
 import {
   Bell,
+  CarFront,
   LayoutDashboard,
   LogOut,
-  Plus,
   Users,
   Wrench,
 } from 'lucide-react'
-import { Link, NavLink, Outlet } from 'react-router'
+import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -28,12 +28,14 @@ import {
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useAuth } from '@/features/auth/auth-context'
 import { useTallerActual } from '@/features/auth/hooks/use-taller-actual'
+import { BuscadorGlobal } from '@/features/busqueda/components/buscador-global'
 import { supabase } from '@/lib/supabase'
+import { cn } from '@/lib/utils'
 
 const secciones = [
   { to: '/', label: 'Inicio', icon: LayoutDashboard, end: true },
-  { to: '/clientes', label: 'Clientes', icon: Users, end: false },
   { to: '/servicios', label: 'Servicios', icon: Wrench, end: false },
+  { to: '/clientes', label: 'Clientes', icon: Users, end: false },
 ]
 
 // Secciones de fases futuras: se muestran deshabilitadas para dar el panorama.
@@ -51,9 +53,9 @@ function AppSidebar() {
           <p className="font-semibold">{taller?.nombre ?? 'Talleres'}</p>
           <p className="text-muted-foreground text-xs">Mechanic Services</p>
         </div>
-        <Button asChild size="sm" onClick={() => setOpenMobile(false)}>
-          <Link to="/clientes/nuevo">
-            <Plus /> Nuevo cliente
+        <Button asChild onClick={() => setOpenMobile(false)}>
+          <Link to="/recibir">
+            <CarFront /> Recibir vehículo
           </Link>
         </Button>
       </SidebarHeader>
@@ -115,20 +117,63 @@ function AppSidebar() {
   )
 }
 
+// Barra inferior para el celular: lo que más se usa, siempre a un toque.
+function BarraInferior() {
+  const item = (
+    to: string,
+    label: string,
+    Icono: typeof Users,
+    end = false,
+  ) => (
+    <NavLink
+      to={to}
+      end={end}
+      className={({ isActive }) =>
+        cn(
+          'flex flex-1 flex-col items-center gap-0.5 py-2 text-xs',
+          isActive ? 'text-foreground font-medium' : 'text-muted-foreground',
+        )
+      }
+    >
+      <Icono className="size-5" />
+      {label}
+    </NavLink>
+  )
+
+  return (
+    <nav className="bg-background fixed inset-x-0 bottom-0 z-20 flex items-center border-t pb-[env(safe-area-inset-bottom)] md:hidden">
+      {item('/', 'Inicio', LayoutDashboard, true)}
+      {item('/servicios', 'Servicios', Wrench)}
+      <Link
+        to="/recibir"
+        className="bg-primary text-primary-foreground -mt-5 flex flex-1 flex-col items-center gap-0.5 rounded-2xl px-3 py-2 text-xs font-medium shadow-md"
+      >
+        <CarFront className="size-6" />
+        Recibir
+      </Link>
+      {item('/clientes', 'Clientes', Users)}
+    </nav>
+  )
+}
+
 export function AppLayout() {
+  const { pathname } = useLocation()
+
   return (
     <TooltipProvider>
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <header className="bg-background sticky top-0 z-10 flex h-14 items-center gap-2 border-b px-4">
+          <header className="bg-background sticky top-0 z-30 flex h-14 items-center gap-2 border-b px-4">
             <SidebarTrigger />
-            <span className="font-medium">Panel</span>
+            {/* key: al cambiar de pantalla el buscador se limpia solo */}
+            <BuscadorGlobal key={pathname} />
           </header>
-          <main className="mx-auto w-full max-w-4xl px-4 py-6">
+          <main className="mx-auto w-full max-w-4xl px-4 py-6 pb-28 md:pb-6">
             <Outlet />
           </main>
         </SidebarInset>
+        <BarraInferior />
       </SidebarProvider>
     </TooltipProvider>
   )
