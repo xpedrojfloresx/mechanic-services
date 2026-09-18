@@ -5,16 +5,14 @@
 **Fase 0: completa y pusheada a GitHub** (`main`,
 `https://github.com/xpedrojfloresx/mechanic-services`).
 
-**Fase 1 (Base de datos y esquema en Supabase): completa**, con una
-salvedad: la prueba de aislamiento entre talleres con usuarios reales queda
-pendiente para la Fase 2 (ver "Qué falta" y "Verificación de RLS" más abajo).
+**Fase 1 (Base de datos y esquema en Supabase): completa.** La prueba de
+aislamiento entre talleres con un usuario real ya se hizo (ver más abajo) —
+queda cerrada del todo.
 
-**Fase 2 (Autenticación): en curso.** Código de login/magic
-link/reset de contraseña + rutas protegidas ya escrito y probado en el
-navegador (sin sesión real todavía). Bloqueada en: (a) que Pedro cree su
-usuario en el Dashboard de Supabase, (b) que configure Site
-URL/Redirect URLs, (c) la clave SMTP de Brevo (para que magic
-link/reset lleguen por mail de verdad).
+**Fase 2 (Autenticación): completa para el MVP**, con una sola cosa
+pendiente a propósito: cargar la clave SMTP de Brevo (Pedro la va a mandar
+cuando la tenga; mientras tanto los mails de auth los manda el mailer propio
+de Supabase, que funciona pero no es para producción).
 
 ## Hecho y verificado
 
@@ -55,6 +53,9 @@ link/reset lleguen por mail de verdad).
 - Rutas en `src/App.tsx`: `/login`, `/olvide-mi-contrasena` (públicas, redirigen a `/` si hay sesión), `/restablecer-contrasena` (pública, sin guard — la sesión de recuperación la arma el propio link del mail), `/` protegida (placeholder con email del usuario, su `taller_id` y botón de cerrar sesión).
 - Puerto de dev fijado en `5199` en `vite.config.ts` y `.claude/launch.json`: en esta máquina Windows, `5173`/`5174`/`5180` los tiene tomados un proceso `svchost` (no es el rango de exclusión de `netsh`, es un listener real — no se investigó de qué servicio es). `5199` está libre y es el que hay que usar en la config de Supabase Auth (Site URL / Redirect URLs).
 - Verificado en navegador (sin sesión real todavía): entrar a `/` redirige a `/login`; el formulario de login renderiza bien; "Otras formas de iniciar sesión" despliega el form de magic link; el link "¿Olvidaste tu contraseña?" navega a `/olvide-mi-contrasena` y ese formulario también renderiza bien. Sin errores de consola. `npm run build` y `npm run lint` limpios (solo el mismo warning benigno de siempre + uno nuevo igual de benigno en `auth-context.tsx` por exportar provider+hook juntos, patrón estándar de React).
+- **Bug encontrado y resuelto: `VITE_SUPABASE_ANON_KEY` tenía la clave "secret" en vez de la "publishable"**. Síntoma: login con contraseña, magic link y reset de contraseña fallaban todos con mensajes genéricos ("email o contraseña incorrectos", "no pudimos enviar el mail"), porque nuestro código atrapa cualquier error y muestra un mensaje amigable — eso tapó la causa real. Diagnosticado haciendo un `fetch` directo desde la consola del navegador contra la API de Supabase, que devolvió explícitamente `"Forbidden use of secret API key in browser"`. Pedro reemplazó la clave en `.env` por la publishable/anon correcta desde Project Settings → API Keys, y a partir de ahí todo funcionó. Se agregó `console.error` con el error real antes de cada mensaje genérico en `login-form.tsx`, `forgot-password-form.tsx` y `reset-password-form.tsx`, para que la próxima vez el error real aparezca en la consola del navegador sin exponerlo al usuario final.
+- **Usuario real de Pedro creado y probado de punta a punta**: creó su usuario en el Dashboard de Supabase (email `pflores0213@gmail.com`, autoconfirmado); se le creó el taller **"Mecánicos Boock"** y la fila en `public.usuarios` vinculándolo como `owner` (por SQL directo, ya que no hay alta self-service). Con la clave correcta, Pedro pudo: pedir el reset de contraseña desde `/olvide-mi-contrasena`, recibir el mail (con el mailer por defecto de Supabase, sin Brevo todavía), llegar a `/restablecer-contrasena`, cambiar la contraseña, y loguearse con la nueva. Login con email+contraseña confirmado funcionando end-to-end.
+- **Prueba de aislamiento entre talleres con usuario real** (la que quedó pendiente desde la Fase 1): simulando el JWT de Pedro por SQL (`set local role authenticated; set local request.jwt.claim.sub = '<su id>'`), consultó `clientes` y `talleres` — vio **0 clientes** (correcto: su taller no tiene ninguno) y **1 solo taller visible** ("Mecánicos Boock", no el "Taller Demo" del seed que tiene 2 clientes). Aislamiento confirmado con un usuario real, no solo con los tests negativos de `anon`/`authenticated-sin-perfil` de la Fase 1.
 
 ## Qué falta (Fase 0)
 
@@ -73,13 +74,13 @@ link/reset lleguen por mail de verdad).
 ## Qué falta (Fase 2)
 
 - [x] Código de login (email+contraseña), magic link, reset de contraseña, y protección de rutas.
-- [ ] **Bloqueo actual**: Pedro tiene que crear su usuario en el Dashboard de Supabase (Authentication → Users → Add user, con "Auto Confirm User" tildado) y avisarme el email que usó, para que yo cree el taller y la fila en `public.usuarios` que lo vincule.
-- [ ] Configurar en el Dashboard (Authentication → URL Configuration): Site URL `http://localhost:5199`, Redirect URLs `http://localhost:5199/**`.
-- [ ] Cuenta de Brevo + clave SMTP dedicada, y cargarla en Supabase (Authentication → Auth Settings → SMTP Settings) para que el magic link y el reset de contraseña lleguen por mail de verdad (mientras tanto, Supabase manda los mails con su propio servicio de test, con límites bajos — sirve para probar el flujo pero no para uso real).
-- [ ] Login con email+contraseña probado de punta a punta con un usuario real.
-- [ ] Magic link probado de punta a punta (recibir el mail y entrar).
-- [ ] Reset de contraseña probado de punta a punta (pedir el link, entrar, cambiar la contraseña, loguearse con la nueva).
-- [ ] La prueba de aislamiento entre dos talleres (heredada de la Fase 1) con dos usuarios reales.
+- [x] Usuario real de Pedro creado en Supabase y vinculado a un taller (`public.usuarios` + `public.talleres`).
+- [x] Configurado en el Dashboard: Site URL `http://localhost:5199`, Redirect URLs `http://localhost:5199/**`.
+- [x] Login con email+contraseña probado de punta a punta con un usuario real.
+- [x] Reset de contraseña probado de punta a punta (pedir el link, entrar, cambiar la contraseña, loguearse con la nueva).
+- [x] Prueba de aislamiento entre talleres con un usuario real (heredada de la Fase 1).
+- [ ] **Magic link sin probar de punta a punta todavía** (solo se probó que el pedido no tira error; falta que alguien reciba el mail y entre por ese link). Bajo riesgo porque usa el mismo mecanismo que el reset de contraseña, que ya se probó completo.
+- [ ] Cuenta de Brevo + clave SMTP dedicada, y cargarla en Supabase (Authentication → Auth Settings → SMTP Settings) para que los mails de auth salgan de un remitente propio en vez del mailer de test de Supabase. Pedro la va a mandar cuando la tenga.
 
 ## Decisiones tomadas y motivo
 
@@ -99,6 +100,7 @@ link/reset lleguen por mail de verdad).
 - **`/restablecer-contrasena` es una ruta pública, sin guard de auth**: cuando el usuario toca el link del mail de reset, Supabase le arma una sesión de recuperación temporal (vía `detectSessionInUrl`), así que técnicamente "hay sesión" en ese momento. En vez de mezclar esa ruta con la lógica de `RequireAuth`/`RedirectIfAuthed`, se dejó aparte: si el link venció o es inválido, `supabase.auth.updateUser` devuelve error y se lo mostramos al usuario en el propio formulario.
 - **Creación de talleres/usuarios sigue siendo manual** (sin self-service, como pide el plan): el primer usuario (Pedro) se crea a mano desde el Dashboard de Supabase, y yo vinculo esa fila de `auth.users` a un `taller` y a `public.usuarios` por SQL. Si en el futuro se necesitan altas de usuario más frecuentes (para el máximo de 5 por taller), conviene armar una pantalla de invitación — no está en el alcance de esta fase.
 - **Puerto de dev fijo (`5199`)** en vez de dejar que Vite elija uno libre: Supabase Auth necesita que las Redirect URLs sean exactas (o un wildcard fijo), así que un puerto que cambie en cada corrida rompería el flujo de magic link/reset en desarrollo.
+- **Mensajes de error genéricos al usuario + `console.error` con el error real**: por seguridad no queremos mostrarle a un usuario cualquiera el motivo exacto de un fallo de login (evita filtrar si un email existe o no, por ejemplo), pero el error real se loguea en la consola del navegador para poder diagnosticar — se agregó recién después de perder tiempo con el bug de la clave `VITE_SUPABASE_ANON_KEY` (ver más abajo) que quedó tapado por un mensaje genérico.
 
 ## Preguntas de la sección 5 — respondidas por Pedro (2026-09-18)
 
@@ -124,9 +126,7 @@ link/reset lleguen por mail de verdad).
 ## Pasos manuales pendientes para Pedro
 
 - Cuenta/bucket de Cloudflare R2 — se pospone (fotos no van en el MVP).
-- **Crear el usuario de Pedro** en Supabase Dashboard → Authentication → Users → Add user (con "Auto Confirm User" tildado) y avisar el email usado.
-- **Configurar Site URL / Redirect URLs** en Authentication → URL Configuration: `http://localhost:5199` y `http://localhost:5199/**`.
-- **Cuenta de Brevo** (SMTP): crear cuenta gratis en brevo.com, ir a Settings → SMTP & API → SMTP, generar una **clave SMTP dedicada** (no la API key) y pasarla para cargarla en Supabase (Authentication → Auth Settings → SMTP Settings). Se puede seguir probando el flujo sin esto (Supabase manda mails de prueba con su servicio propio, límites bajos), pero antes de usar la app con clientes reales hace falta.
+- **Cuenta de Brevo** (SMTP): crear cuenta gratis en brevo.com, ir a Settings → SMTP & API → SMTP, generar una **clave SMTP dedicada** (no la API key) y pasarla para cargarla en Supabase (Authentication → Auth Settings → SMTP Settings). El login ya funciona sin esto (Supabase manda mails de prueba con su servicio propio, límites bajos), pero antes de usar la app con clientes reales hace falta.
 
 ## Comandos clave del proyecto
 

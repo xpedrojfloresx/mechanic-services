@@ -28,6 +28,7 @@ export function ForgotPasswordForm() {
       redirectTo: `${window.location.origin}/restablecer-contrasena`,
     })
     if (error) {
+      console.error('Error al pedir el reset de contraseña:', error)
       setErrorGeneral('No pudimos enviar el mail. Probá de nuevo.')
       return
     }

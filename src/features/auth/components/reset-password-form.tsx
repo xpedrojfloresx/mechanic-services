@@ -34,6 +34,7 @@ export function ResetPasswordForm() {
       password: values.password,
     })
     if (error) {
+      console.error('Error al actualizar la contraseña:', error)
       setErrorGeneral(
         'No pudimos actualizar la contraseña. El link puede haber vencido, pedí uno nuevo.',
       )

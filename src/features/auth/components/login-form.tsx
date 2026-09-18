@@ -44,6 +44,7 @@ export function LoginForm() {
     setErrorGeneral(null)
     const { error } = await supabase.auth.signInWithPassword(values)
     if (error) {
+      console.error('Error al iniciar sesión:', error)
       setErrorGeneral('Email o contraseña incorrectos.')
     }
   }
@@ -55,6 +56,7 @@ export function LoginForm() {
       options: { emailRedirectTo: window.location.origin },
     })
     if (error) {
+      console.error('Error al enviar el magic link:', error)
       setErrorGeneral('No pudimos enviar el link. Probá de nuevo.')
       return
     }
