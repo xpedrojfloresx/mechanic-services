@@ -1,11 +1,12 @@
 import { useFormContext } from 'react-hook-form'
 import { FormField } from '@/components/form-field'
+import { MasDatos } from '@/components/mas-datos'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import type { IngresoValues } from '@/features/servicios/schema'
 
 // Campos del ingreso del vehículo. Se usa dentro de un formulario cuyo
-// esquema tiene una clave `ingreso`. Lo único opcional es el estado.
+// esquema tiene una clave `ingreso`. Lo único opcional es el estado; la fecha va plegada (modo ágil).
 export function IngresoFields() {
   const {
     register,
@@ -15,27 +16,14 @@ export function IngresoFields() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-4">
-        <FormField
-          id="ingreso-fecha"
-          label="Fecha de ingreso"
-          error={e?.fecha_ingreso?.message}
-        >
-          <Input
-            id="ingreso-fecha"
-            type="date"
-            {...register('ingreso.fecha_ingreso')}
-          />
-        </FormField>
-        <FormField id="ingreso-km" label="Kilometraje" error={e?.km?.message}>
-          <Input
-            id="ingreso-km"
-            inputMode="numeric"
-            autoComplete="off"
-            {...register('ingreso.km')}
-          />
-        </FormField>
-      </div>
+      <FormField id="ingreso-km" label="Kilometraje" error={e?.km?.message}>
+        <Input
+          id="ingreso-km"
+          inputMode="numeric"
+          autoComplete="off"
+          {...register('ingreso.km')}
+        />
+      </FormField>
       <FormField
         id="ingreso-motivo"
         label="Motivo de ingreso"
@@ -60,6 +48,19 @@ export function IngresoFields() {
           {...register('ingreso.estado')}
         />
       </FormField>
+      <MasDatos conError={!!e?.fecha_ingreso}>
+        <FormField
+          id="ingreso-fecha"
+          label="Fecha de ingreso (por defecto, hoy)"
+          error={e?.fecha_ingreso?.message}
+        >
+          <Input
+            id="ingreso-fecha"
+            type="date"
+            {...register('ingreso.fecha_ingreso')}
+          />
+        </FormField>
+      </MasDatos>
     </div>
   )
 }

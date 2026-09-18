@@ -22,12 +22,16 @@ usa la contraseña de Pedro). Ver "Qué falta (Fase 3)".
 
 ## Hecho y verificado
 
+### Modo ágil (2026-09-18)
+
+Los formularios de recibir/crear muestran solo lo indispensable; lo avanzado va plegado en **"Más datos (opcional)"** (`components/mas-datos.tsx`): **email** del cliente, **año y color** del vehículo y **fecha de ingreso** (por defecto hoy). Siempre visibles: nombre, teléfono, patente, marca, modelo, kilometraje, motivo y el **estado en que llegó** (opcional pero visible, porque Pedro pidió tenerlo siempre a mano). Los campos plegados siguen montados (se guardan igual) y la sección **se abre sola si hay un error** en alguno, o si al editar ya tiene datos (ej. un vehículo con año). Aplica a `ClienteNuevoForm`, `VehiculoFields`, `IngresoFields` y por lo tanto a Recibir, alta/edición de vehículo y editar ingreso. Se agregó `key` por id en los formularios de edición para que no se arrastre estado entre registros. Verificado en navegador con datos falsos; falta la opinión de Pedro sobre qué más plegar.
+
 ### Referencia competitiva (Vehix) y alcance (2026-09-18)
 
 Pedro compartió una referencia de Vehix; quedó como **regla permanente en `CLAUDE.md`** (sección "Alcance"): lista de lo que se suma al MVP, ideas para después y lo que **no** se construye (ARCA, caja/cuenta corriente, stock, sueldos, multi-sucursal, firma digital). Si se pide algo de esa lista, frenar y confirmar.
 
 Pendiente derivado, a criterio de Pedro y de menor a mayor esfuerzo:
-- **Modo ágil por defecto**: hoy "Recibir vehículo" pide bastante (nombre, teléfono, patente, marca, modelo, km, motivo…). Ver qué campos pasar a "más datos" colapsado (año, color, email, estado al llegar, fecha de ingreso).
+- ~~Modo ágil por defecto~~ **hecho** (ver "Modo ágil" abajo).
 - **Botón "enviar por WhatsApp"** (`wa.me/<número>?text=`): requiere definir cómo armar el número (Argentina: `549` + área + número; Chile: `569` + 8 dígitos; ya se guarda solo dígitos) y el texto del mensaje. Pedir a Pedro el texto.
 - **Reasignar un vehículo a otro cliente** conservando su historial (cambiar `vehiculos.cliente_id`; los servicios cuelgan del vehículo, no del cliente).
 - Estado del servicio: ya cubierto (En taller / Listo / Entregado).

@@ -20,7 +20,7 @@ export function ClienteFormPage() {
       <h1 className="text-xl font-semibold">
         {id ? 'Editar cliente' : 'Nuevo cliente'}
       </h1>
-      {id ? <ClienteForm cliente={cliente} /> : <ClienteNuevoForm />}
+      {id ? <ClienteForm key={id} cliente={cliente} /> : <ClienteNuevoForm />}
     </div>
   )
 }

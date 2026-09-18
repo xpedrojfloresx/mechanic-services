@@ -303,15 +303,13 @@ export function useGuardarItems(tallerId: string | undefined) {
       items: ItemInput[]
     }) => {
       if (!tallerId) throw new Error('Falta el taller del usuario')
-      const { error } = await supabase
-        .from('servicio_items')
-        .insert(
-          items.map((i) => ({
-            ...i,
-            servicio_id: servicioId,
-            taller_id: tallerId,
-          })),
-        )
+      const { error } = await supabase.from('servicio_items').insert(
+        items.map((i) => ({
+          ...i,
+          servicio_id: servicioId,
+          taller_id: tallerId,
+        })),
+      )
       if (error) throw error
     },
     onSuccess: () => invalidarServicios(queryClient),

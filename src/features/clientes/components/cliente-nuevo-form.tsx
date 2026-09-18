@@ -4,6 +4,7 @@ import { FormProvider, useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router'
 import { z } from 'zod'
 import { FormField } from '@/components/form-field'
+import { MasDatos } from '@/components/mas-datos'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -138,18 +139,20 @@ export function ClienteNuevoForm({
               {...register('telefono')}
             />
           </FormField>
-          <FormField
-            id="email"
-            label="Email (opcional)"
-            error={errors.email?.message}
-          >
-            <Input
+          <MasDatos conError={!!errors.email}>
+            <FormField
               id="email"
-              type="email"
-              autoComplete="off"
-              {...register('email')}
-            />
-          </FormField>
+              label="Email (opcional)"
+              error={errors.email?.message}
+            >
+              <Input
+                id="email"
+                type="email"
+                autoComplete="off"
+                {...register('email')}
+              />
+            </FormField>
+          </MasDatos>
         </section>
 
         <section className="flex flex-col gap-4">

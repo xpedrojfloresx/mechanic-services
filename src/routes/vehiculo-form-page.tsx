@@ -36,7 +36,11 @@ export function VehiculoFormPage() {
       <h1 className="text-xl font-semibold">
         {id ? 'Editar vehículo' : 'Nuevo vehículo'}
       </h1>
-      <VehiculoForm clienteId={clienteId} vehiculo={vehiculo} />
+      <VehiculoForm
+        key={id ?? 'nuevo'}
+        clienteId={clienteId}
+        vehiculo={vehiculo}
+      />
     </div>
   )
 }

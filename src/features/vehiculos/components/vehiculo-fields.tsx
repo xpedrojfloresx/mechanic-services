@@ -1,5 +1,6 @@
 import { useFormContext } from 'react-hook-form'
 import { FormField } from '@/components/form-field'
+import { MasDatos } from '@/components/mas-datos'
 import { Input } from '@/components/ui/input'
 import type { VehiculoValues } from '@/features/vehiculos/schema'
 
@@ -8,6 +9,7 @@ import type { VehiculoValues } from '@/features/vehiculos/schema'
 export function VehiculoFields() {
   const {
     register,
+    getValues,
     formState: { errors },
   } = useFormContext<{ vehiculo: VehiculoValues }>()
   const e = errors.vehiculo
@@ -38,27 +40,38 @@ export function VehiculoFields() {
           />
         </FormField>
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <FormField id="v-anio" label="Año (opcional)" error={e?.anio?.message}>
-          <Input
+      <MasDatos
+        abiertoInicial={
+          !!(getValues('vehiculo.anio') || getValues('vehiculo.color'))
+        }
+        conError={!!(e?.anio || e?.color)}
+      >
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
             id="v-anio"
-            inputMode="numeric"
-            autoComplete="off"
-            {...register('vehiculo.anio')}
-          />
-        </FormField>
-        <FormField
-          id="v-color"
-          label="Color (opcional)"
-          error={e?.color?.message}
-        >
-          <Input
+            label="Año (opcional)"
+            error={e?.anio?.message}
+          >
+            <Input
+              id="v-anio"
+              inputMode="numeric"
+              autoComplete="off"
+              {...register('vehiculo.anio')}
+            />
+          </FormField>
+          <FormField
             id="v-color"
-            autoComplete="off"
-            {...register('vehiculo.color')}
-          />
-        </FormField>
-      </div>
+            label="Color (opcional)"
+            error={e?.color?.message}
+          >
+            <Input
+              id="v-color"
+              autoComplete="off"
+              {...register('vehiculo.color')}
+            />
+          </FormField>
+        </div>
+      </MasDatos>
     </div>
   )
 }
