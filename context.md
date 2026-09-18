@@ -20,7 +20,7 @@
 
 **Qué es**: app web (PWA a futuro) para mecánicos y talleres: clientes, vehículos, ingresos/servicios, recordatorios de próximo servicio y búsqueda rápida por patente o nombre. Se usa desde el celular y la PC. Un solo desarrollador (Pedro), part-time; prioridad: **simple, rápido, barato, poco código**.
 
-**Dónde estamos**: Fases 0 a 5 del plan **hechas** más varios extras que pidió Pedro (rediseño de flujo, WhatsApp, cambiar de dueño, modo ágil, insights, rediseño visual). Todo verificado por Claude con SQL/RLS y en navegador con datos falsos; **Pedro todavía no probó nada de esto con datos reales**. **Siguiente: Fase 6 (PWA)**, que necesita un logo/ícono de Pedro (el `manifest` tiene `icons: []`).
+**Dónde estamos**: Fases 0 a 5 del plan **hechas** más varios extras que pidió Pedro (rediseño de flujo, WhatsApp, cambiar de dueño, modo ágil, insights, rediseño visual). Todo verificado por Claude con SQL/RLS y en navegador con datos falsos; **Pedro todavía no probó nada de esto con datos reales**. **Fase 6 (PWA) hecha por Claude con ícono provisorio** (2026-09-18); falta que Pedro pruebe instalarla en el celu. Pedro respondió: no tiene logo, todavía no probó la app logueada, aprobó los textos de WhatsApp y los umbrales de aviso (5 días En taller / 2 días Listo). **Siguiente: Fase 8 (deploy y backups).**
 
 **Primeras cosas a hacer en una sesión nueva**
 1. Leer `CLAUDE.md` (reglas permanentes) y este archivo.
@@ -40,7 +40,7 @@
 | 3 Clientes, vehículos, búsqueda | Hecha (sin prueba de Pedro) | Buscador global, fichas, patente normalizada y validada. |
 | 4 Servicios e ítems | Hecha (sin prueba de Pedro) | Ingreso con estado, servicios realizados (renglones), total calculado. |
 | 5 Recordatorios | Hecha (sin prueba de Pedro) | Con atajos de fecha, agrupados por urgencia, WhatsApp. |
-| 6 PWA | **Pendiente (siguiente)** | Instalable, cache de lectura de últimas búsquedas/fichas. **Sin** sync offline de escritura ni push (confirmar con Pedro antes). Falta logo. |
+| 6 PWA | Hecha por Claude, **falta probar instalación en el celular** | Manifest completo con íconos PNG provisorios (generados con `npx @vite-pwa/assets-generator --preset minimal-2023 public/favicon.svg`, sin sumar dependencia; se cambian cuando Pedro tenga logo), `display: standalone`, cache de lectura `NetworkFirst` (`supabase-lectura`, solo GET a `*.supabase.co/rest/v1/`, 7 días, 100 entradas). Build OK y `sw.js`/manifest servidos bien; el navegador integrado no registra service workers, así que el registro y "Instalar" **no** se pudieron verificar acá. Sin sync offline de escritura ni push. Nota: la cache queda en el dispositivo; si se comparte el celular entre usuarios, los datos de la última sesión siguen en cache tras cerrar sesión (limpiar al hacer logout si hace falta). |
 | 7 Fotos | **Fuera del MVP** | Pedro dijo que no entra. |
 | 8 Deploy y backups | Pendiente | Cloudflare Workers (Static Assets, wrangler); plan de backups escrito (free de Supabase no trae; Pro o `pg_dump` a R2). No darlo por resuelto en silencio. |
 
