@@ -1,12 +1,18 @@
 import { BrowserRouter, Route, Routes } from 'react-router'
+import { AppLayout } from '@/components/app-layout'
 import {
   RedirectIfAuthed,
   RequireAuth,
 } from '@/features/auth/components/require-auth'
+import { ClienteDetallePage } from '@/routes/cliente-detalle'
+import { ClienteFormPage } from '@/routes/cliente-form-page'
+import { ClientesPage } from '@/routes/clientes'
 import { ForgotPasswordPage } from '@/routes/forgot-password'
 import { HomePage } from '@/routes/home'
 import { LoginPage } from '@/routes/login'
 import { ResetPasswordPage } from '@/routes/reset-password'
+import { VehiculoDetallePage } from '@/routes/vehiculo-detalle'
+import { VehiculoFormPage } from '@/routes/vehiculo-form-page'
 
 function App() {
   return (
@@ -23,7 +29,19 @@ function App() {
         <Route path="/restablecer-contrasena" element={<ResetPasswordPage />} />
 
         <Route element={<RequireAuth />}>
-          <Route path="/" element={<HomePage />} />
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/clientes" element={<ClientesPage />} />
+            <Route path="/clientes/nuevo" element={<ClienteFormPage />} />
+            <Route path="/clientes/:id" element={<ClienteDetallePage />} />
+            <Route path="/clientes/:id/editar" element={<ClienteFormPage />} />
+            <Route path="/vehiculos/nuevo" element={<VehiculoFormPage />} />
+            <Route path="/vehiculos/:id" element={<VehiculoDetallePage />} />
+            <Route
+              path="/vehiculos/:id/editar"
+              element={<VehiculoFormPage />}
+            />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>

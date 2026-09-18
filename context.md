@@ -14,7 +14,23 @@ pendiente a propósito: cargar la clave SMTP de Brevo (Pedro la va a mandar
 cuando la tenga; mientras tanto los mails de auth los manda el mailer propio
 de Supabase, que funciona pero no es para producción).
 
+**Fase 3 (Clientes, vehículos y búsqueda rápida): código escrito, falta que
+Pedro la pruebe logueado en el navegador** (Claude no puede loguearse: no
+usa la contraseña de Pedro). Ver "Qué falta (Fase 3)".
+
 ## Hecho y verificado
+
+### Fase 3 (2026-09-18)
+
+- shadcn agregado: `input`, `label`, `card`, `badge`, `skeleton`. UI = Tailwind v4 + shadcn/ui (radix, preset nova, Geist, lucide).
+- `src/features/clientes/` (hooks TanStack Query: listar, ficha, recientes, guardar; `cliente-form.tsx` con RHF+Zod), `src/features/vehiculos/` (hooks, `patente.ts`, `vehiculo-form.tsx`), `src/features/busqueda/api.ts` (búsqueda), `src/components/app-layout.tsx` (header con navegación + salir), `src/components/form-field.tsx`.
+- Rutas nuevas (todas protegidas, dentro de `AppLayout`): `/` (buscador + clientes recientes), `/clientes`, `/clientes/nuevo`, `/clientes/:id`, `/clientes/:id/editar`, `/vehiculos/nuevo?cliente=<id>`, `/vehiculos/:id`, `/vehiculos/:id/editar`.
+- Patente: se normaliza (mayúsculas, sin espacios/guiones) antes de guardar; se validan los formatos `ABC123` y `AB123CD`; duplicada por taller → mensaje "Ya existe un vehículo con esa patente." (código Postgres `23505`).
+- Búsqueda: debounce 250 ms, mínimo 2 caracteres, `ilike` parcial sobre `vehiculos.patente` (normalizada) y `clientes.nombre` (con `%`/`_` escapados), 20 resultados por tipo, usando los índices `pg_trgm` de la Fase 1.
+- Verificado por Claude: `npm run build` y `npm run lint` limpios; sintaxis de las consultas (embed `clientes(...)`, `ilike`) validada contra la API real (200); con la identidad de Pedro simulada por SQL: alta de cliente+vehículo OK, patente duplicada → `23505`, insertar en taller ajeno → bloqueado por RLS, búsqueda por patente y nombre encuentra el registro. Datos de prueba borrados (el taller de Pedro quedó con 0 clientes). Smoke en navegador sin sesión: sin errores de consola.
+- `src/lib/database.types.ts` agregado a `.prettierignore` (Prettier lo reformateaba).
+
+## Hecho y verificado (Fases 0–2)
 
 - Proyecto Vite + React + TypeScript inicializado (`npm create vite@latest . -- --template react-ts`).
 - Tailwind CSS v4 instalado y configurado vía `@tailwindcss/vite` (sin `tailwind.config.js`, CSS-first).
@@ -56,6 +72,12 @@ de Supabase, que funciona pero no es para producción).
 - **Bug encontrado y resuelto: `VITE_SUPABASE_ANON_KEY` tenía la clave "secret" en vez de la "publishable"**. Síntoma: login con contraseña, magic link y reset de contraseña fallaban todos con mensajes genéricos ("email o contraseña incorrectos", "no pudimos enviar el mail"), porque nuestro código atrapa cualquier error y muestra un mensaje amigable — eso tapó la causa real. Diagnosticado haciendo un `fetch` directo desde la consola del navegador contra la API de Supabase, que devolvió explícitamente `"Forbidden use of secret API key in browser"`. Pedro reemplazó la clave en `.env` por la publishable/anon correcta desde Project Settings → API Keys, y a partir de ahí todo funcionó. Se agregó `console.error` con el error real antes de cada mensaje genérico en `login-form.tsx`, `forgot-password-form.tsx` y `reset-password-form.tsx`, para que la próxima vez el error real aparezca en la consola del navegador sin exponerlo al usuario final.
 - **Usuario real de Pedro creado y probado de punta a punta**: creó su usuario en el Dashboard de Supabase (email `pflores0213@gmail.com`, autoconfirmado); se le creó el taller **"Mecánicos Boock"** y la fila en `public.usuarios` vinculándolo como `owner` (por SQL directo, ya que no hay alta self-service). Con la clave correcta, Pedro pudo: pedir el reset de contraseña desde `/olvide-mi-contrasena`, recibir el mail (con el mailer por defecto de Supabase, sin Brevo todavía), llegar a `/restablecer-contrasena`, cambiar la contraseña, y loguearse con la nueva. Login con email+contraseña confirmado funcionando end-to-end.
 - **Prueba de aislamiento entre talleres con usuario real** (la que quedó pendiente desde la Fase 1): simulando el JWT de Pedro por SQL (`set local role authenticated; set local request.jwt.claim.sub = '<su id>'`), consultó `clientes` y `talleres` — vio **0 clientes** (correcto: su taller no tiene ninguno) y **1 solo taller visible** ("Mecánicos Boock", no el "Taller Demo" del seed que tiene 2 clientes). Aislamiento confirmado con un usuario real, no solo con los tests negativos de `anon`/`authenticated-sin-perfil` de la Fase 1.
+
+## Qué falta (Fase 3)
+
+- [ ] **Pedro prueba logueado** (`npm run dev`, http://localhost:5199): cargar un cliente, agregarle un vehículo, buscarlo por parte de la patente y por parte del nombre, editar ambos, probar patente inválida y duplicada. Recién ahí se marca la fase como hecha.
+- [ ] Probar en el celular (uso principal: responder por WhatsApp).
+- Sin borrado de clientes/vehículos (el plan pide alta/edición/listado). Decidir más adelante si hace falta.
 
 ## Qué falta (Fase 0)
 
@@ -101,6 +123,16 @@ de Supabase, que funciona pero no es para producción).
 - **Creación de talleres/usuarios sigue siendo manual** (sin self-service, como pide el plan): el primer usuario (Pedro) se crea a mano desde el Dashboard de Supabase, y yo vinculo esa fila de `auth.users` a un `taller` y a `public.usuarios` por SQL. Si en el futuro se necesitan altas de usuario más frecuentes (para el máximo de 5 por taller), conviene armar una pantalla de invitación — no está en el alcance de esta fase.
 - **Puerto de dev fijo (`5199`)** en vez de dejar que Vite elija uno libre: Supabase Auth necesita que las Redirect URLs sean exactas (o un wildcard fijo), así que un puerto que cambie en cada corrida rompería el flujo de magic link/reset en desarrollo.
 - **Mensajes de error genéricos al usuario + `console.error` con el error real**: por seguridad no queremos mostrarle a un usuario cualquiera el motivo exacto de un fallo de login (evita filtrar si un email existe o no, por ejemplo), pero el error real se loguea en la consola del navegador para poder diagnosticar — se agregó recién después de perder tiempo con el bug de la clave `VITE_SUPABASE_ANON_KEY` (ver más abajo) que quedó tapado por un mensaje genérico.
+
+### Fase 3
+- **`taller_id` se envía desde el front** (tomado de `useUsuarioActual`) en los inserts: los tipos generados lo exigen en `Insert` y así evitamos casts. Los triggers y `WITH CHECK` de RLS siguen siendo la garantía real (probado: un `taller_id` ajeno es rechazado).
+- **Vehículo siempre parte de un cliente**: `/vehiculos/nuevo` requiere `?cliente=<id>`; sin él muestra un aviso con link a la lista de clientes (no hay selector de cliente en el form, para mantener poco código).
+- **Historial en la ficha del vehículo**: por ahora un texto "todavía no hay servicios"; se completa en la Fase 4.
+
+## Dudas abiertas para Pedro (Fase 3)
+
+- **Patentes de motos** (ej. `123ABC`, `A123BCD`) no pasan la validación actual, que solo acepta `ABC123` y `AB123CD` como pide el plan. ¿Se atienden motos? Si sí, hay que sumar esos formatos.
+- ¿Querés un botón "abrir WhatsApp" en la ficha del cliente? Requiere definir cómo normalizar los teléfonos argentinos (código de país / el `9` de celulares); no lo armé para no inventar.
 
 ## Preguntas de la sección 5 — respondidas por Pedro (2026-09-18)
 
