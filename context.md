@@ -2,7 +2,9 @@
 
 ## Estado actual
 
-**Fase 0 (Setup del proyecto): en curso, casi terminada.**
+**Fase 0 (Setup del proyecto): completa del lado de Claude Code.** Falta
+crear el repo remoto en GitHub y confirmar las preguntas abiertas antes de
+pasar a la Fase 1 (ver más abajo).
 
 ## Hecho y verificado
 
@@ -19,11 +21,13 @@
 - `README.md` reescrito con setup, scripts y stack.
 - `CLAUDE.md` creado con las reglas permanentes de trabajo (sección 0 del plan).
 - Verificado: `npm run build` compila sin errores, `npm run lint` corre limpio (1 warning benigno de un patrón estándar de shadcn en `button.tsx`, no es un problema real).
-- Repo Git: **todavía no inicializado** (falta `git init` + primer commit, y falta crear el repo en GitHub — ver pendientes).
+- Verificado en navegador: `npm run dev` levanta, la página carga sin errores de consola, muestra "Gestión de Talleres" y los estilos de Tailwind se aplican.
+- `.claude/launch.json` agregado para poder levantar el servidor de dev desde las herramientas de Claude Code.
+- Repo Git: inicializado localmente (`git init`), 2 commits hechos. **Todavía no hay remoto en GitHub** (ver pendientes).
 
 ## Qué falta (Fase 0)
 
-- [ ] `git init`, primer commit, y crear el repo en GitHub (Pedro debe crearlo — ver más abajo).
+- [ ] Crear el repo en GitHub y agregar el remoto (Pedro debe crearlo — ver más abajo). Una vez creado, avisar para hacer `git remote add origin ...` y el primer push.
 - [ ] Confirmar con Pedro las preguntas abiertas de la sección 5 del plan antes de arrancar la Fase 1.
 - [ ] Crear proyecto en Supabase y cargar `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` en `.env` local (Pedro).
 
