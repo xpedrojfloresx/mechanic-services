@@ -5,13 +5,9 @@
 **Fase 0: completa y pusheada a GitHub** (`main`,
 `https://github.com/xpedrojfloresx/mechanic-services`).
 
-**Fase 1 (Base de datos y esquema en Supabase): en curso.** El SQL de
-esquema + RLS está escrito, pero **todavía NO se aplicó a la base de
-Supabase de Pedro ni se verificó** (no hay Docker en esta máquina para correr
-el stack local de Supabase, así que hace falta linkear el proyecto remoto
-para aplicar migraciones — ver "Bloqueo actual" más abajo). Por regla del
-proyecto, no se marca la fase como terminada hasta verificar de punta a
-punta.
+**Fase 1 (Base de datos y esquema en Supabase): completa**, con una
+salvedad: la prueba de aislamiento entre talleres con usuarios reales queda
+pendiente para la Fase 2 (ver "Qué falta" y "Verificación de RLS" más abajo).
 
 ## Hecho y verificado
 
@@ -37,6 +33,14 @@ punta.
 - Migración `supabase/migrations/20260918000001_initial_schema.sql`: tablas `talleres`, `usuarios`, `clientes`, `vehiculos`, `servicios`, `servicio_items`, `recordatorios`, con `taller_id` en todas las de negocio, constraints (unique `taller_id+patente`, checks en `tipo`/`estado` de `recordatorios`), índices normales + índices GIN `pg_trgm` para búsqueda parcial rápida por nombre de cliente y patente (extensión `pg_trgm` habilitada).
 - Migración `supabase/migrations/20260918000002_rls_policies.sql`: función `current_taller_id()` (SECURITY DEFINER) para evitar recursión de RLS al leer `usuarios`; triggers `BEFORE INSERT` que derivan `taller_id` automáticamente desde la fila padre (o desde el usuario logueado en `clientes`) **solo si el cliente no lo mandó** — así el front no necesita pasar `taller_id` a mano, pero si alguien intenta forzar uno, la policy `WITH CHECK` lo rechaza igual; triggers `updated_at`; RLS activado y políticas de select/insert/update/delete por `taller_id` en todas las tablas de negocio, y policies de solo lectura en `talleres`/`usuarios` (no hay alta de talleres/usuarios vía RLS todavía — se hacen a mano con el service role, ver decisiones).
 - `supabase/seed.sql`: datos de desarrollo (1 taller demo, 2 clientes, 2 vehículos, 1 servicio con 2 items, 1 recordatorio). No crea usuarios de `auth.users` (eso se resuelve en la Fase 2).
+- Pedro corrió `npx supabase login` (OAuth por navegador, no lo podía hacer esta sesión). Con eso: `supabase link --project-ref yvpixnfacvffpwqsvdct` y `supabase db push` aplicaron las dos migraciones al proyecto remoto **"Mechanic Services"** sin errores.
+- `supabase db push --include-seed` cargó `seed.sql` sin errores.
+- Verificado con queries directas (`supabase db query --linked`):
+  - Conteos del seed correctos (2 clientes, 2 vehículos, 1 servicio, 2 servicio_items, 1 recordatorio) y **0 inconsistencias** entre el `taller_id` de cada fila hija y el de su padre (vehículo↔cliente, servicio↔vehículo, servicio_item↔servicio, recordatorio↔vehículo) — confirma que los triggers que derivan `taller_id` funcionan bien.
+  - `relrowsecurity = true` en las 7 tablas de negocio.
+  - Con `role anon` (sin login): `select count(*) from clientes` devuelve **0** filas — confirma que sin sesión no se ve nada.
+  - Con `role authenticated` pero con un `sub` de JWT que no tiene fila en `usuarios` (usuario logueado sin perfil): también **0** filas — confirma que `current_taller_id()` devuelve `null` y las policies bloquean correctamente.
+- Tipos generados: `npx supabase gen types typescript --linked > src/lib/database.types.ts` (482 líneas, las 7 tablas presentes). `src/lib/supabase.ts` actualizado para usar `createClient<Database>(...)`. `npm run build` compila limpio con los tipos reales.
 
 ## Qué falta (Fase 0)
 
@@ -47,10 +51,10 @@ punta.
 
 ## Qué falta (Fase 1)
 
-- [ ] **Bloqueo actual**: Pedro tiene que correr `npx supabase login` en su propia terminal (abre un flujo OAuth por navegador que esta sesión no puede completar). Una vez logueado, Claude Code puede: `npx supabase link --project-ref yvpixnfacvffpwqsvdct`, después `npx supabase db push` para aplicar las dos migraciones.
-- [ ] Generar tipos TypeScript: `npx supabase gen types typescript --linked > src/lib/database.types.ts` (recién se puede correr una vez linkeado).
-- [ ] **Probar RLS de punta a punta** (que un taller no vea datos de otro). Esto requiere usuarios reales de `auth.users` en dos talleres distintos, que todavía no existen (la Fase 2 crea el login). Propuesta: hacer esta prueba real cuando se implemente el login en la Fase 2, con dos cuentas de prueba en dos talleres distintos, en vez de simularla ahora con RLS aislado. Si Pedro prefiere probarlo antes, se puede hacer con un script Node que use un `SUPABASE_SERVICE_ROLE_KEY` local (nunca en el bundle del front, nunca commiteado) para crear usuarios de prueba vía Admin API — avisar si se quiere ese camino.
-- [ ] Correr `npm run build` con los tipos generados para confirmar que compilan bien contra el esquema real.
+- [x] Aplicar migraciones al proyecto remoto.
+- [x] Generar tipos TypeScript y usarlos en el cliente.
+- [x] Verificar RLS con `anon` y con `authenticated` sin perfil (0 filas en ambos casos).
+- [ ] **Verificación de RLS con dos talleres reales** ("un taller no ve datos de otro" tal cual lo pide el plan) queda pendiente hasta la Fase 2: para probarla de verdad hacen falta usuarios reales en `auth.users`, que se crean recién con el login. No se simuló insertando directo en `auth.users` porque son tablas internas de Supabase Auth y no quise adivinar su estructura exacta (regla de "no inventar"). Se hace como parte del criterio de "hecho" de la Fase 2, que ya pide explícitamente "solo ve su taller".
 
 ## Decisiones tomadas y motivo
 
@@ -63,7 +67,8 @@ punta.
 - **`taller_id` se auto-completa por trigger** en vez de exigir que el front lo mande en cada insert: reduce código en el front (no hay que leer el `taller_id` del usuario logueado en cada formulario) y reduce la superficie de error humano. La seguridad real sigue estando en las policies RLS (`WITH CHECK`), el trigger es solo comodidad — si el trigger fallara o alguien lo desactivara, RLS igual bloquea un `taller_id` incorrecto.
 - **No hay policies de INSERT/UPDATE/DELETE en `talleres` ni `usuarios`**: no hay registro self-service todavía (explícitamente fuera de alcance del MVP), así que altas de talleres y usuarios se hacen a mano por Pedro con el `service_role` key (que bypassea RLS) desde el SQL Editor de Supabase o el Dashboard. Si en algún momento se agrega un flujo de invitación de usuarios, hay que sumar policies ahí.
 - **Índices `pg_trgm` para búsqueda parcial** (`clientes.nombre`, `vehiculos.patente`) se agregaron ya en la Fase 1 en vez de esperar a la Fase 3, porque son parte del esquema/índices que pide el checklist de esta fase y evitan una migración extra después.
-- **Sin stack local de Supabase (Docker no disponible en esta máquina)**: no se pudo correr `supabase start` para probar las migraciones localmente antes de aplicarlas. Se van a aplicar directo al proyecto remoto de Pedro con `supabase db push` una vez que él haga `supabase login`. Es una desviación menor de lo ideal (probar local primero) pero razonable dado el entorno.
+- **Sin stack local de Supabase (Docker no disponible en esta máquina)**: no se pudo correr `supabase start` para probar las migraciones localmente antes de aplicarlas. Se aplicaron directo al proyecto remoto de Pedro con `supabase db push` después de que él hizo `supabase login`. Es una desviación menor de lo ideal (probar local primero) pero razonable dado el entorno, y terminó funcionando sin errores.
+- **Test de aislamiento entre talleres pospuesto a la Fase 2**: hacerlo bien requiere usuarios reales de `auth.users`, que no existen todavía (no hay login). No se simuló creando filas a mano en `auth.users` porque es una tabla interna de Supabase Auth (GoTrue) y no tengo certeza de su estructura exacta — se prefirió no inventar. En cambio se verificó lo que sí se puede probar sin usuarios reales: `anon` ve 0 filas, y `authenticated` sin perfil en `usuarios` también ve 0 filas.
 
 ## Preguntas de la sección 5 — respondidas por Pedro (2026-09-18)
 
@@ -88,10 +93,9 @@ punta.
 
 ## Pasos manuales pendientes para Pedro
 
-- Confirmar si puedo hacer el primer `git push` a `origin` (repo ya vinculado localmente).
 - Cuenta/bucket de Cloudflare R2 — se pospone (fotos no van en el MVP).
 - Cuenta de Brevo (SMTP) — se pide en la Fase 2, con instrucciones exactas en ese momento.
-- Para la Fase 1 (migraciones con Supabase CLI): probablemente haga falta que Pedro corra `supabase login` en su máquina (flujo OAuth por navegador que Claude Code no puede completar en esta sesión) y/o me pase un access token / el project ref para linkear el proyecto. Se detalla en cuanto se llegue a ese paso.
+- Antes de arrancar la Fase 2: decidir cómo se crea el primer usuario/perfil (Pedro) — probablemente Pedro se registre via Supabase Auth (UI que armemos) y yo le doy el SQL para insertarlo en `public.usuarios` con su `taller_id`, o directamente le doy los pasos para hacerlo desde el SQL Editor de Supabase. Se define al arrancar la Fase 2.
 
 ## Comandos clave del proyecto
 
@@ -102,6 +106,11 @@ npm run preview        # sirve el build de producción
 npm run lint           # ESLint
 npm run format         # Prettier (escribe cambios)
 npm run format:check   # Prettier (solo verifica)
+
+npx supabase migration list           # ver estado de migraciones local vs remoto
+npx supabase db push                  # aplicar migraciones nuevas al remoto (proyecto ya linkeado)
+npx supabase db push --include-seed   # aplicar migraciones + supabase/seed.sql
+npx supabase gen types typescript --linked > src/lib/database.types.ts   # regenerar tipos tras cambiar el esquema
 ```
 
 ## Versiones relevantes (al momento de instalar, 2026-09-18)
