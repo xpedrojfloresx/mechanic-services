@@ -2,9 +2,8 @@
 
 ## Estado actual
 
-**Fase 0 (Setup del proyecto): completa del lado de Claude Code.** Falta
-crear el repo remoto en GitHub y confirmar las preguntas abiertas antes de
-pasar a la Fase 1 (ver más abajo).
+**Fase 0: completa.** Preguntas abiertas confirmadas por Pedro (2026-09-18).
+Arrancando **Fase 1 (Base de datos y esquema en Supabase)**.
 
 ## Hecho y verificado
 
@@ -23,13 +22,15 @@ pasar a la Fase 1 (ver más abajo).
 - Verificado: `npm run build` compila sin errores, `npm run lint` corre limpio (1 warning benigno de un patrón estándar de shadcn en `button.tsx`, no es un problema real).
 - Verificado en navegador: `npm run dev` levanta, la página carga sin errores de consola, muestra "Gestión de Talleres" y los estilos de Tailwind se aplican.
 - `.claude/launch.json` agregado para poder levantar el servidor de dev desde las herramientas de Claude Code.
-- Repo Git: inicializado localmente (`git init`), 2 commits hechos. **Todavía no hay remoto en GitHub** (ver pendientes).
+- Repo Git: inicializado localmente, remoto agregado (`origin` → `https://github.com/xpedrojfloresx/mechanic-services.git`). Nombre del proyecto en `package.json` actualizado a `mechanic-services`.
+- Pedro creó el proyecto en Supabase y cargó `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` en `.env` local.
 
 ## Qué falta (Fase 0)
 
-- [ ] Crear el repo en GitHub y agregar el remoto (Pedro debe crearlo — ver más abajo). Una vez creado, avisar para hacer `git remote add origin ...` y el primer push.
-- [ ] Confirmar con Pedro las preguntas abiertas de la sección 5 del plan antes de arrancar la Fase 1.
-- [ ] Crear proyecto en Supabase y cargar `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` en `.env` local (Pedro).
+- [x] Crear el repo en GitHub y agregar el remoto.
+- [x] Confirmar con Pedro las preguntas abiertas de la sección 5 del plan.
+- [x] Crear proyecto en Supabase y cargar credenciales en `.env` local.
+- [ ] Primer `git push` al remoto (pendiente de confirmación explícita antes de pushear).
 
 ## Decisiones tomadas y motivo
 
@@ -38,25 +39,35 @@ pasar a la Fase 1 (ver más abajo).
 - **ESLint + Prettier en vez de oxlint**: el template nuevo de `create-vite` trae `oxlint` por defecto, pero el plan pide explícitamente ESLint + Prettier. Se removió `oxlint` y se instaló el stack estándar (`eslint`, `typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `prettier`, `eslint-config-prettier`).
 - **Sin íconos reales de PWA todavía**: `vite-plugin-pwa` está configurado pero con `icons: []` en el manifest — hacen falta archivos PNG (192x192, 512x512, maskable) que no existen todavía. Se completa en la Fase 6 (PWA) o cuando Pedro tenga un logo.
 - **`baseUrl` removido de los tsconfig**: TypeScript 6 lo marca deprecado (`TS5101`) y con `moduleResolution: "bundler"` no hace falta — `paths` funciona sin `baseUrl`.
+- **`usuarios.rol` se mantiene en el esquema** aunque hoy todos los usuarios son "owner": Pedro planea diferenciar roles a futuro (multi-tenant), así que la columna evita una migración de esquema más adelante. Por ahora el valor por defecto/único será `owner`.
 
-## Dudas abiertas / preguntas pendientes para Pedro
+## Preguntas de la sección 5 — respondidas por Pedro (2026-09-18)
 
-Antes de arrancar la Fase 1 hay que confirmar (sección 5 del plan):
-
-1. **Arquitectura**: ¿confirmás single-tenant-ready por ahora (todas las tablas con `taller_id` + RLS desde el día uno, pero un solo taller en uso)?
-2. **Nombre del proyecto y del repo**: se usó `gestiontalleres` como nombre del `package.json` (derivado del nombre de la carpeta). ¿Ese es el nombre definitivo para el repo de GitHub, o preferís otro?
-3. **Campos exactos de cada entidad**: ¿confirmás el modelo de la sección 4 del plan (`talleres`, `usuarios`, `clientes`, `vehiculos`, `servicios`, `servicio_items`, `recordatorios`) o falta/sobra algún campo?
-4. Login: ya decidido en el plan (email + contraseña principal, magic link como alternativa, reset por mail vía Brevo SMTP). No hay duda acá, solo falta que Pedro cree la cuenta de Brevo cuando lleguemos a la Fase 2.
-5. **¿Cuántos usuarios/mecánicos** se van a loguear en el taller (para dimensionar roles/permisos, aunque sea a futuro)?
-6. **Fotos (Fase 7)**: ¿entran en el MVP o quedan para después?
-7. ¿Hay algún dato del rubro que Pedro quiera registrar y que no esté contemplado en el modelo de datos?
+1. **Arquitectura**: multi-tenant es el objetivo a futuro, pero el MVP queda
+   single-tenant-ready: cada taller se loguea con su usuario y ve solo su
+   propia data. Confirma el enfoque `taller_id` + RLS desde el día uno.
+2. **Nombre**: "Mechanic Services" por ahora (repo:
+   `xpedrojfloresx/mechanic-services`, `package.json` name:
+   `mechanic-services`). Puede cambiar más adelante.
+3. **Campos de entidades**: el modelo de la sección 4 del plan queda como
+   está por ahora. Posible expansión de campos más adelante (no especificada
+   todavía).
+4. Login: sin cambios respecto al plan (email + contraseña, magic link,
+   reset por Brevo SMTP — Fase 2).
+5. **Usuarios por taller**: máximo 5 usuarios por taller, **todos "owners"**
+   (sin roles de cliente ni permisos diferenciados por ahora). Implicancia
+   para el esquema: la columna `usuarios.rol` puede tener un solo valor
+   posible en la práctica hoy, pero se deja la columna para diferenciar
+   roles a futuro sin tener que migrar.
+6. **Fotos (Fase 7)**: NO entran en este MVP. Posiblemente más adelante.
+7. **Datos adicionales del rubro**: por ahora ninguno.
 
 ## Pasos manuales pendientes para Pedro
 
-- Crear el repo en GitHub (organización del equipo) — falta definir el nombre (ver duda #2).
-- Crear el proyecto en Supabase y pasar la URL y la anon key (van a `.env`, nunca al repo).
-- Cuenta/bucket de Cloudflare R2 — puede esperar a la Fase 7.
+- Confirmar si puedo hacer el primer `git push` a `origin` (repo ya vinculado localmente).
+- Cuenta/bucket de Cloudflare R2 — se pospone (fotos no van en el MVP).
 - Cuenta de Brevo (SMTP) — se pide en la Fase 2, con instrucciones exactas en ese momento.
+- Para la Fase 1 (migraciones con Supabase CLI): probablemente haga falta que Pedro corra `supabase login` en su máquina (flujo OAuth por navegador que Claude Code no puede completar en esta sesión) y/o me pase un access token / el project ref para linkear el proyecto. Se detalla en cuanto se llegue a ese paso.
 
 ## Comandos clave del proyecto
 
