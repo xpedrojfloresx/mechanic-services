@@ -20,6 +20,7 @@ import { useTallerActual } from '@/features/auth/hooks/use-taller-actual'
 import { BotonWhatsApp } from '@/features/whatsapp/components/boton-whatsapp'
 import { mensajeCliente } from '@/features/whatsapp/whatsapp'
 import { useVehiculosDeCliente } from '@/features/vehiculos/api'
+import { MarcaLogo } from '@/features/vehiculos/components/marca-logo'
 
 export function ClienteDetallePage() {
   const { id } = useParams()
@@ -137,9 +138,12 @@ export function ClienteDetallePage() {
           <Link key={v.id} to={`/vehiculos/${v.id}`}>
             <Card className="hover:bg-muted/50">
               <CardContent className="flex items-center justify-between gap-2">
-                <p className="font-medium">
-                  {v.marca} {v.modelo}
-                </p>
+                <div className="flex items-center gap-3">
+                  <MarcaLogo marca={v.marca} />
+                  <p className="font-medium">
+                    {v.marca} {v.modelo}
+                  </p>
+                </div>
                 <Patente size="sm">{v.patente}</Patente>
               </CardContent>
             </Card>
