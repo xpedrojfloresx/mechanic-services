@@ -7,7 +7,6 @@ import {
   Wrench,
 } from 'lucide-react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Sidebar,
@@ -15,7 +14,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -35,11 +33,9 @@ import { cn } from '@/lib/utils'
 const secciones = [
   { to: '/', label: 'Inicio', icon: LayoutDashboard, end: true },
   { to: '/servicios', label: 'Servicios', icon: Wrench, end: false },
+  { to: '/recordatorios', label: 'Recordatorios', icon: Bell, end: false },
   { to: '/clientes', label: 'Clientes', icon: Users, end: false },
 ]
-
-// Secciones de fases futuras: se muestran deshabilitadas para dar el panorama.
-const proximamente = [{ label: 'Recordatorios', icon: Bell }]
 
 function AppSidebar() {
   const { user } = useAuth()
@@ -76,25 +72,6 @@ function AppSidebar() {
                       <s.icon />
                       <span>{s.label}</span>
                     </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Próximamente</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {proximamente.map((s) => (
-                <SidebarMenuItem key={s.label}>
-                  <SidebarMenuButton disabled>
-                    <s.icon />
-                    <span>{s.label}</span>
-                    <Badge variant="outline" className="ml-auto">
-                      Pronto
-                    </Badge>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

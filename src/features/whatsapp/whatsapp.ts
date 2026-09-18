@@ -78,3 +78,16 @@ export function mensajeServicio(
 export function mensajeCliente(nombre: string, taller: string) {
   return `Hola ${primerNombre(nombre)}, te escribimos de ${taller}.`
 }
+
+// Aviso de un próximo servicio pendiente (recordatorio).
+export function mensajeRecordatorio(
+  d: Datos,
+  r: { nota: string; fechaEstimada: string; targetKm: number | null },
+) {
+  const [anio, mes, dia] = r.fechaEstimada.split('-')
+  const cuando =
+    r.targetKm != null
+      ? `a los ${formatoNumero.format(r.targetKm)} km o hacia el ${dia}/${mes}/${anio}`
+      : `hacia el ${dia}/${mes}/${anio}`
+  return `Hola ${primerNombre(d.nombre)}, te recordamos que tu ${d.marca} ${d.modelo} (${d.patente}) tiene pendiente: ${r.nota} (${cuando}). Escribinos para coordinar. ${d.taller}`
+}

@@ -12,6 +12,8 @@ import { HomePage } from '@/routes/home'
 import { IngresoPage } from '@/routes/ingreso-page'
 import { LoginPage } from '@/routes/login'
 import { RecibirPage } from '@/routes/recibir'
+import { RecordatorioNuevoPage } from '@/routes/recordatorio-nuevo'
+import { RecordatoriosPage } from '@/routes/recordatorios'
 import { ResetPasswordPage } from '@/routes/reset-password'
 import { ServicioDetallePage } from '@/routes/servicio-detalle'
 import { ServicioEditarPage } from '@/routes/servicio-editar-page'
@@ -39,6 +41,11 @@ function App() {
           <Route element={<AppLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/recibir" element={<RecibirPage />} />
+            <Route path="/recordatorios" element={<RecordatoriosPage />} />
+            <Route
+              path="/recordatorios/nuevo"
+              element={<RecordatorioNuevoPage />}
+            />
             <Route path="/clientes" element={<ClientesPage />} />
             <Route path="/servicios" element={<ServiciosPage />} />
             <Route path="/servicios/nuevo" element={<ServicioNuevoPage />} />

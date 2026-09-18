@@ -14,6 +14,8 @@ pendiente a propósito: cargar la clave SMTP de Brevo (Pedro la va a mandar
 cuando la tenga; mientras tanto los mails de auth los manda el mailer propio
 de Supabase, que funciona pero no es para producción).
 
+**Fase 5 (Recordatorios): código escrito y probado por SQL/navegador con datos falsos; falta la prueba de Pedro logueado.** Ver "Fase 5" en "Hecho y verificado".
+
 **Fase 4 (Servicios e ítems): código escrito y probado por SQL/navegador con datos falsos; falta la prueba de Pedro logueado.** Ver "Fase 4" en "Hecho y verificado".
 
 **Fase 3 (Clientes, vehículos y búsqueda rápida): código escrito, falta que
@@ -21,6 +23,17 @@ Pedro la pruebe logueado en el navegador** (Claude no puede loguearse: no
 usa la contraseña de Pedro). Ver "Qué falta (Fase 3)".
 
 ## Hecho y verificado
+
+### Fase 5 — Recordatorios / próximos servicios (2026-09-18)
+
+- **Cargar un recordatorio** (`RecordatorioForm`, modo ágil): "¿Qué hay que hacer?" + atajos **"En 3 meses / 6 meses / 1 año"** (por defecto 6 meses, muestra la fecha estimada) + "A los cuántos km" **opcional** (con el km del ingreso como referencia en el ejemplo) + "Otra fecha" plegada. Si se pone km es de tipo `km` (con `target_km`) y si no, de tipo `fecha`; **la fecha estimada la elige siempre el mecánico** (el km depende del uso, como pide el plan). Sin fecha de vencimiento por km automática.
+- **Dónde se carga**: en la ficha del servicio y en la del vehículo ("Próximos servicios" → "Programar próximo servicio", `ProximosServicios`), y desde la nueva sección **Recordatorios** del menú (botón "Nuevo recordatorio": elige el auto y carga el aviso).
+- **Sección Recordatorios** (`/recordatorios`, ahora en el menú; se sacó el grupo "Próximamente"): pendientes agrupados en **Vencidos / Este mes / Más adelante**, cada uno con cliente, patente, qué hay que hacer, fecha y km, y botones **Hecho** (pasa a `hecho`), **Quitar** y el ícono de **WhatsApp** con el mensaje armado ("…tiene pendiente: <nota> (a los X km o hacia el dd/mm/aaaa). Escribinos para coordinar." — texto propuesto por mí, a aprobar).
+- **Inicio**: sección **"Para avisar (N)"** con los vencidos y los de este mes (los 3 más urgentes + link a ver todos), justo debajo de "En el taller ahora".
+- Base: la tabla `recordatorios` ya existía desde la Fase 1 (sin migración nueva). Probado por SQL con RLS: alta con y sin km (tipo `km`/`fecha`), listado con joins, marcar hecho, `check` de tipo inválido rechazado, y borrar un cliente arrastra sus recordatorios. La lista de recordatorios ya usa fecha local (no UTC) para "hoy".
+- Verificado en navegador con datos falsos: agrupación por urgencia, Inicio, ficha del vehículo, validaciones del formulario (nota, km inválido) y atajos de fecha. **Falta** la prueba de Pedro con datos reales.
+- `ElegirVehiculo` (buscador de auto) quedó compartido entre "Añadir servicio" y "Nuevo recordatorio".
+- Ideas que **no** se hicieron (fuera del alcance del MVP o a confirmar): avisos automáticos/push, sugerir el próximo servicio según lo que se hizo, recordatorio recurrente ("cada 6 meses").
 
 ### Botón de WhatsApp (2026-09-18)
 

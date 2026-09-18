@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useServiciosDeVehiculo } from '@/features/servicios/api'
 import { etiquetaEstado } from '@/features/servicios/estados'
 import { useVehiculo } from '@/features/vehiculos/api'
+import { ProximosServicios } from '@/features/recordatorios/components/proximos-servicios'
 import { useTallerActual } from '@/features/auth/hooks/use-taller-actual'
 import { BotonWhatsApp } from '@/features/whatsapp/components/boton-whatsapp'
 import { mensajeGeneral } from '@/features/whatsapp/whatsapp'
@@ -80,6 +81,11 @@ export function VehiculoDetallePage() {
           )}
         </CardContent>
       </Card>
+
+      <ProximosServicios
+        vehiculoId={vehiculo.id}
+        kmReferencia={servicios?.[0]?.km_al_ingreso}
+      />
 
       <section className="flex flex-col gap-2">
         <div className="flex items-center justify-between">

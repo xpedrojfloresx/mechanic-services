@@ -23,6 +23,7 @@ import {
 } from '@/features/servicios/api'
 import { ESTADOS, valoresCambioEstado } from '@/features/servicios/estados'
 import { ItemsSection } from '@/features/servicios/components/items-section'
+import { ProximosServicios } from '@/features/recordatorios/components/proximos-servicios'
 import { useTallerActual } from '@/features/auth/hooks/use-taller-actual'
 import { BotonWhatsApp } from '@/features/whatsapp/components/boton-whatsapp'
 import { mensajeServicio } from '@/features/whatsapp/whatsapp'
@@ -182,6 +183,11 @@ export function ServicioDetallePage() {
       </Card>
 
       <ItemsSection servicioId={servicio.id} />
+
+      <ProximosServicios
+        vehiculoId={servicio.vehiculo_id}
+        kmReferencia={servicio.km_al_ingreso}
+      />
 
       <Card>
         <CardHeader>

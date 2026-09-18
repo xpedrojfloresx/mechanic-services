@@ -5,7 +5,10 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useConteos } from '@/features/resumen/api'
 import { Insights } from '@/features/resumen/components/insights'
+import { useRecordatorios } from '@/features/recordatorios/api'
+import { RecordatorioCard } from '@/features/recordatorios/components/recordatorio-card'
 import { useServicios } from '@/features/servicios/api'
+import { hoyLocal } from '@/features/servicios/schema'
 import { ServicioEnCursoCard } from '@/features/servicios/components/servicio-en-curso-card'
 
 // Inicio pensado para el mecánico: primero lo que hace todo el día (recibir un
@@ -13,6 +16,12 @@ import { ServicioEnCursoCard } from '@/features/servicios/components/servicio-en
 export function HomePage() {
   const enCurso = useServicios('en_curso')
   const conteos = useConteos()
+  const recordatorios = useRecordatorios('pendiente')
+  // Para avisar: los vencidos y los que caen dentro de este mes.
+  const finDeMes = hoyLocal().slice(0, 7) + '-31'
+  const paraAvisar = (recordatorios.data ?? []).filter(
+    (r) => r.fecha_estimada <= finDeMes,
+  )
 
   return (
     <div className="flex flex-col gap-8">
@@ -48,6 +57,28 @@ export function HomePage() {
           <ServicioEnCursoCard key={s.id} servicio={s} />
         ))}
       </section>
+
+      {paraAvisar.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="font-semibold">
+            Para avisar
+            <span className="text-muted-foreground font-normal">
+              {' '}
+              ({paraAvisar.length})
+            </span>
+          </h2>
+          {paraAvisar.slice(0, 3).map((r) => (
+            <RecordatorioCard key={r.id} recordatorio={r} />
+          ))}
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/recordatorios">
+              {paraAvisar.length > 3
+                ? `Ver los ${paraAvisar.length} recordatorios`
+                : 'Ver recordatorios'}
+            </Link>
+          </Button>
+        </section>
+      )}
 
       <section className="flex flex-col gap-3">
         <h2 className="font-semibold">Resumen</h2>
