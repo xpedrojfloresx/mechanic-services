@@ -25,9 +25,10 @@ export function HomePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <ResumenCard titulo="Clientes" valor={conteos.data?.clientes} />
         <ResumenCard titulo="Vehículos" valor={conteos.data?.vehiculos} />
+        <ResumenCard titulo="En taller" valor={conteos.data?.enTaller} />
       </div>
 
       <Insights />

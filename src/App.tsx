@@ -12,6 +12,9 @@ import { HomePage } from '@/routes/home'
 import { IngresoPage } from '@/routes/ingreso-page'
 import { LoginPage } from '@/routes/login'
 import { ResetPasswordPage } from '@/routes/reset-password'
+import { ServicioDetallePage } from '@/routes/servicio-detalle'
+import { ServicioEditarPage } from '@/routes/servicio-editar-page'
+import { ServiciosPage } from '@/routes/servicios'
 import { VehiculoDetallePage } from '@/routes/vehiculo-detalle'
 import { VehiculoFormPage } from '@/routes/vehiculo-form-page'
 
@@ -33,6 +36,12 @@ function App() {
           <Route element={<AppLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/clientes" element={<ClientesPage />} />
+            <Route path="/servicios" element={<ServiciosPage />} />
+            <Route path="/servicios/:id" element={<ServicioDetallePage />} />
+            <Route
+              path="/servicios/:id/editar"
+              element={<ServicioEditarPage />}
+            />
             <Route path="/clientes/nuevo" element={<ClienteFormPage />} />
             <Route path="/clientes/:id" element={<ClienteDetallePage />} />
             <Route path="/clientes/:id/editar" element={<ClienteFormPage />} />

@@ -14,11 +14,23 @@ pendiente a propósito: cargar la clave SMTP de Brevo (Pedro la va a mandar
 cuando la tenga; mientras tanto los mails de auth los manda el mailer propio
 de Supabase, que funciona pero no es para producción).
 
+**Fase 4 (Servicios e ítems): código escrito y probado por SQL/navegador con datos falsos; falta la prueba de Pedro logueado.** Ver "Fase 4" en "Hecho y verificado".
+
 **Fase 3 (Clientes, vehículos y búsqueda rápida): código escrito, falta que
 Pedro la pruebe logueado en el navegador** (Claude no puede loguearse: no
 usa la contraseña de Pedro). Ver "Qué falta (Fase 3)".
 
 ## Hecho y verificado
+
+### Fase 4 (2026-09-18)
+
+- **Estado del servicio con lista fija** (elegido por Pedro): `en_taller` (por defecto) / `listo` / `entregado`. Migración `20260918000006_estado_servicio.sql` (aplicada): `estado` pasa a `not null default 'en_taller'` con `check`, los existentes se completaron, índice `(taller_id, estado)`. Al pasar a *Entregado* se guarda `fecha_entrega` (hoy); si se vuelve atrás se borra. Etiquetas en `features/servicios/estados.ts`.
+- **Ficha del servicio** `/servicios/:id`: vehículo y cliente (con links), botones de estado, datos del ingreso, editar (`/servicios/:id/editar`, reutiliza `IngresoForm`) y **eliminar con confirmación** (borra sus ítems en cascada).
+- **Ítems** (`servicio_items`): repuestos/mano de obra con descripción, cantidad y precio opcional; alta, edición y quitar en la misma pantalla (`item-form.tsx`, `items-section.tsx`). Acepta coma o punto decimal. **Total = suma de cantidad × precio** (los ítems sin precio no suman); se calcula al mostrarlo, **no se guarda** (la columna `servicios.total` queda sin usar). No hay símbolo de moneda porque se usan Argentina y Chile.
+- **Servicios** en el menú (`/servicios`): lista global con filtro En taller / Listo / Entregado / Todos (arranca en *En taller*), con vehículo, cliente, fecha y motivo. El historial del vehículo ahora enlaza a cada servicio y muestra su estado. Inicio suma la tarjeta **"En taller"**.
+- Helpers movidos a `src/lib/formato.ts` (`formatoNumero`, `formatearFecha`).
+- Verificado: por SQL con la identidad de Pedro (ítems heredan `taller_id`, estado inválido rechazado por el `check`, entregar guarda fecha, borrar servicio arrastra ítems, joins de la lista); sintaxis de consultas anidadas contra la API (200); en navegador con sesión falsa y datos inyectados: lista, detalle, total 32.000, validaciones de ítem. **Falta** que Pedro pruebe el guardado real logueado.
+- **Pendiente/ideas**: eliminar vehículos sueltos; recordatorios (Fase 5); si se quiere guardar el total o distinguir "repuesto" de "mano de obra" con un campo `tipo`.
 
 ### Fase 3 (2026-09-18)
 

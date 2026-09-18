@@ -33,13 +33,11 @@ import { supabase } from '@/lib/supabase'
 const secciones = [
   { to: '/', label: 'Inicio', icon: LayoutDashboard, end: true },
   { to: '/clientes', label: 'Clientes', icon: Users, end: false },
+  { to: '/servicios', label: 'Servicios', icon: Wrench, end: false },
 ]
 
 // Secciones de fases futuras: se muestran deshabilitadas para dar el panorama.
-const proximamente = [
-  { label: 'Servicios', icon: Wrench },
-  { label: 'Recordatorios', icon: Bell },
-]
+const proximamente = [{ label: 'Recordatorios', icon: Bell }]
 
 function AppSidebar() {
   const { user } = useAuth()

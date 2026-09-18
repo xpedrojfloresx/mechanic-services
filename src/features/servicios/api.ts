@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { Json } from '@/lib/database.types'
+import type { Json, TablesUpdate } from '@/lib/database.types'
+import type { Estado } from './estados'
 
 export type IngresoInput = {
   fecha_ingreso: string
@@ -115,5 +116,152 @@ export function useCrearVehiculoConIngreso() {
         queryClient.invalidateQueries({ queryKey: [key] })
       }
     },
+  })
+}
+
+const SELECT_CON_VEHICULO =
+  '*, vehiculos(id, patente, marca, modelo, clientes(id, nombre, telefono))'
+
+export function useServicios(estado: Estado | 'todos') {
+  return useQuery({
+    queryKey: ['servicios', 'lista', estado],
+    queryFn: async () => {
+      let consulta = supabase
+        .from('servicios')
+        .select(SELECT_CON_VEHICULO)
+        .order('fecha_ingreso', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(200)
+      if (estado !== 'todos') consulta = consulta.eq('estado', estado)
+      const { data, error } = await consulta
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+export function useServicio(id: string | undefined) {
+  return useQuery({
+    queryKey: ['servicios', 'detalle', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('servicios')
+        .select(SELECT_CON_VEHICULO)
+        .eq('id', id!)
+        .single()
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+function invalidarServicios(queryClient: ReturnType<typeof useQueryClient>) {
+  for (const key of ['servicios', 'items', 'conteos']) {
+    queryClient.invalidateQueries({ queryKey: [key] })
+  }
+}
+
+export function useActualizarServicio() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      values,
+    }: {
+      id: string
+      values: TablesUpdate<'servicios'>
+    }) => {
+      const { data, error } = await supabase
+        .from('servicios')
+        .update(values)
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => invalidarServicios(queryClient),
+  })
+}
+
+export function useEliminarServicio() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('servicios').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => invalidarServicios(queryClient),
+  })
+}
+
+export type ItemInput = {
+  descripcion: string
+  cantidad: number
+  precio: number | null
+}
+
+export function useItems(servicioId: string | undefined) {
+  return useQuery({
+    queryKey: ['items', servicioId],
+    enabled: !!servicioId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('servicio_items')
+        .select('*')
+        .eq('servicio_id', servicioId!)
+        .order('created_at')
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+export function useGuardarItem(tallerId: string | undefined) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      servicioId,
+      itemId,
+      values,
+    }: {
+      servicioId: string
+      itemId?: string
+      values: ItemInput
+    }) => {
+      if (itemId) {
+        const { error } = await supabase
+          .from('servicio_items')
+          .update(values)
+          .eq('id', itemId)
+        if (error) throw error
+        return
+      }
+      if (!tallerId) throw new Error('Falta el taller del usuario')
+      const { error } = await supabase
+        .from('servicio_items')
+        .insert({ ...values, servicio_id: servicioId, taller_id: tallerId })
+      if (error) throw error
+    },
+    onSuccess: () => invalidarServicios(queryClient),
+  })
+}
+
+export function useEliminarItem() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('servicio_items')
+        .delete()
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => invalidarServicios(queryClient),
   })
 }

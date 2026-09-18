@@ -179,7 +179,7 @@ export type Database = {
       servicios: {
         Row: {
           created_at: string
-          estado: string | null
+          estado: string
           estado_al_ingreso: string | null
           fecha_entrega: string | null
           fecha_ingreso: string
@@ -194,7 +194,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          estado?: string | null
+          estado?: string
           estado_al_ingreso?: string | null
           fecha_entrega?: string | null
           fecha_ingreso?: string
@@ -209,7 +209,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          estado?: string | null
+          estado?: string
           estado_al_ingreso?: string | null
           fecha_entrega?: string | null
           fecha_ingreso?: string

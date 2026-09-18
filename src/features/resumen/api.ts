@@ -6,13 +6,22 @@ export function useConteos() {
   return useQuery({
     queryKey: ['conteos'],
     queryFn: async () => {
-      const [clientes, vehiculos] = await Promise.all([
+      const [clientes, vehiculos, enTaller] = await Promise.all([
         supabase.from('clientes').select('*', { count: 'exact', head: true }),
         supabase.from('vehiculos').select('*', { count: 'exact', head: true }),
+        supabase
+          .from('servicios')
+          .select('*', { count: 'exact', head: true })
+          .eq('estado', 'en_taller'),
       ])
       if (clientes.error) throw clientes.error
       if (vehiculos.error) throw vehiculos.error
-      return { clientes: clientes.count ?? 0, vehiculos: vehiculos.count ?? 0 }
+      if (enTaller.error) throw enTaller.error
+      return {
+        clientes: clientes.count ?? 0,
+        vehiculos: vehiculos.count ?? 0,
+        enTaller: enTaller.count ?? 0,
+      }
     },
   })
 }
