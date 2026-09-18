@@ -2,8 +2,16 @@
 
 ## Estado actual
 
-**Fase 0: completa.** Preguntas abiertas confirmadas por Pedro (2026-09-18).
-Arrancando **Fase 1 (Base de datos y esquema en Supabase)**.
+**Fase 0: completa y pusheada a GitHub** (`main`,
+`https://github.com/xpedrojfloresx/mechanic-services`).
+
+**Fase 1 (Base de datos y esquema en Supabase): en curso.** El SQL de
+esquema + RLS está escrito, pero **todavía NO se aplicó a la base de
+Supabase de Pedro ni se verificó** (no hay Docker en esta máquina para correr
+el stack local de Supabase, así que hace falta linkear el proyecto remoto
+para aplicar migraciones — ver "Bloqueo actual" más abajo). Por regla del
+proyecto, no se marca la fase como terminada hasta verificar de punta a
+punta.
 
 ## Hecho y verificado
 
@@ -24,13 +32,25 @@ Arrancando **Fase 1 (Base de datos y esquema en Supabase)**.
 - `.claude/launch.json` agregado para poder levantar el servidor de dev desde las herramientas de Claude Code.
 - Repo Git: inicializado localmente, remoto agregado (`origin` → `https://github.com/xpedrojfloresx/mechanic-services.git`). Nombre del proyecto en `package.json` actualizado a `mechanic-services`.
 - Pedro creó el proyecto en Supabase y cargó `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` en `.env` local.
+- Primer `git push` a `origin/main` hecho (con confirmación explícita de Pedro antes de pushear).
+- Supabase CLI instalado como devDependency (`supabase@2.117.0`) y `supabase init` corrido (`supabase/config.toml`).
+- Migración `supabase/migrations/20260918000001_initial_schema.sql`: tablas `talleres`, `usuarios`, `clientes`, `vehiculos`, `servicios`, `servicio_items`, `recordatorios`, con `taller_id` en todas las de negocio, constraints (unique `taller_id+patente`, checks en `tipo`/`estado` de `recordatorios`), índices normales + índices GIN `pg_trgm` para búsqueda parcial rápida por nombre de cliente y patente (extensión `pg_trgm` habilitada).
+- Migración `supabase/migrations/20260918000002_rls_policies.sql`: función `current_taller_id()` (SECURITY DEFINER) para evitar recursión de RLS al leer `usuarios`; triggers `BEFORE INSERT` que derivan `taller_id` automáticamente desde la fila padre (o desde el usuario logueado en `clientes`) **solo si el cliente no lo mandó** — así el front no necesita pasar `taller_id` a mano, pero si alguien intenta forzar uno, la policy `WITH CHECK` lo rechaza igual; triggers `updated_at`; RLS activado y políticas de select/insert/update/delete por `taller_id` en todas las tablas de negocio, y policies de solo lectura en `talleres`/`usuarios` (no hay alta de talleres/usuarios vía RLS todavía — se hacen a mano con el service role, ver decisiones).
+- `supabase/seed.sql`: datos de desarrollo (1 taller demo, 2 clientes, 2 vehículos, 1 servicio con 2 items, 1 recordatorio). No crea usuarios de `auth.users` (eso se resuelve en la Fase 2).
 
 ## Qué falta (Fase 0)
 
 - [x] Crear el repo en GitHub y agregar el remoto.
 - [x] Confirmar con Pedro las preguntas abiertas de la sección 5 del plan.
 - [x] Crear proyecto en Supabase y cargar credenciales en `.env` local.
-- [ ] Primer `git push` al remoto (pendiente de confirmación explícita antes de pushear).
+- [x] Primer `git push` al remoto.
+
+## Qué falta (Fase 1)
+
+- [ ] **Bloqueo actual**: Pedro tiene que correr `npx supabase login` en su propia terminal (abre un flujo OAuth por navegador que esta sesión no puede completar). Una vez logueado, Claude Code puede: `npx supabase link --project-ref yvpixnfacvffpwqsvdct`, después `npx supabase db push` para aplicar las dos migraciones.
+- [ ] Generar tipos TypeScript: `npx supabase gen types typescript --linked > src/lib/database.types.ts` (recién se puede correr una vez linkeado).
+- [ ] **Probar RLS de punta a punta** (que un taller no vea datos de otro). Esto requiere usuarios reales de `auth.users` en dos talleres distintos, que todavía no existen (la Fase 2 crea el login). Propuesta: hacer esta prueba real cuando se implemente el login en la Fase 2, con dos cuentas de prueba en dos talleres distintos, en vez de simularla ahora con RLS aislado. Si Pedro prefiere probarlo antes, se puede hacer con un script Node que use un `SUPABASE_SERVICE_ROLE_KEY` local (nunca en el bundle del front, nunca commiteado) para crear usuarios de prueba vía Admin API — avisar si se quiere ese camino.
+- [ ] Correr `npm run build` con los tipos generados para confirmar que compilan bien contra el esquema real.
 
 ## Decisiones tomadas y motivo
 
@@ -40,6 +60,10 @@ Arrancando **Fase 1 (Base de datos y esquema en Supabase)**.
 - **Sin íconos reales de PWA todavía**: `vite-plugin-pwa` está configurado pero con `icons: []` en el manifest — hacen falta archivos PNG (192x192, 512x512, maskable) que no existen todavía. Se completa en la Fase 6 (PWA) o cuando Pedro tenga un logo.
 - **`baseUrl` removido de los tsconfig**: TypeScript 6 lo marca deprecado (`TS5101`) y con `moduleResolution: "bundler"` no hace falta — `paths` funciona sin `baseUrl`.
 - **`usuarios.rol` se mantiene en el esquema** aunque hoy todos los usuarios son "owner": Pedro planea diferenciar roles a futuro (multi-tenant), así que la columna evita una migración de esquema más adelante. Por ahora el valor por defecto/único será `owner`.
+- **`taller_id` se auto-completa por trigger** en vez de exigir que el front lo mande en cada insert: reduce código en el front (no hay que leer el `taller_id` del usuario logueado en cada formulario) y reduce la superficie de error humano. La seguridad real sigue estando en las policies RLS (`WITH CHECK`), el trigger es solo comodidad — si el trigger fallara o alguien lo desactivara, RLS igual bloquea un `taller_id` incorrecto.
+- **No hay policies de INSERT/UPDATE/DELETE en `talleres` ni `usuarios`**: no hay registro self-service todavía (explícitamente fuera de alcance del MVP), así que altas de talleres y usuarios se hacen a mano por Pedro con el `service_role` key (que bypassea RLS) desde el SQL Editor de Supabase o el Dashboard. Si en algún momento se agrega un flujo de invitación de usuarios, hay que sumar policies ahí.
+- **Índices `pg_trgm` para búsqueda parcial** (`clientes.nombre`, `vehiculos.patente`) se agregaron ya en la Fase 1 en vez de esperar a la Fase 3, porque son parte del esquema/índices que pide el checklist de esta fase y evitan una migración extra después.
+- **Sin stack local de Supabase (Docker no disponible en esta máquina)**: no se pudo correr `supabase start` para probar las migraciones localmente antes de aplicarlas. Se van a aplicar directo al proyecto remoto de Pedro con `supabase db push` una vez que él haga `supabase login`. Es una desviación menor de lo ideal (probar local primero) pero razonable dado el entorno.
 
 ## Preguntas de la sección 5 — respondidas por Pedro (2026-09-18)
 
