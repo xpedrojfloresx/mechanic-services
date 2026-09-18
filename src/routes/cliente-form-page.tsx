@@ -1,6 +1,7 @@
 import { useParams } from 'react-router'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ClienteForm } from '@/features/clientes/components/cliente-form'
+import { ClienteNuevoForm } from '@/features/clientes/components/cliente-nuevo-form'
 import { useCliente } from '@/features/clientes/api'
 
 export function ClienteFormPage() {
@@ -19,7 +20,7 @@ export function ClienteFormPage() {
       <h1 className="text-xl font-semibold">
         {id ? 'Editar cliente' : 'Nuevo cliente'}
       </h1>
-      <ClienteForm cliente={cliente} />
+      {id ? <ClienteForm cliente={cliente} /> : <ClienteNuevoForm />}
     </div>
   )
 }

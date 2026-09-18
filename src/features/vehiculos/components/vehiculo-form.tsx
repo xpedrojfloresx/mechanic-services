@@ -2,38 +2,19 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router'
-import { z } from 'zod'
 import { FormField } from '@/components/form-field'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useUsuarioActual } from '@/features/auth/hooks/use-usuario-actual'
 import { useGuardarVehiculo } from '@/features/vehiculos/api'
+import { normalizarPatente } from '@/features/vehiculos/patente'
 import {
-  esPatenteValida,
-  normalizarPatente,
-} from '@/features/vehiculos/patente'
+  vehiculoSchema,
+  type VehiculoValues,
+} from '@/features/vehiculos/schema'
 import type { Tables } from '@/lib/database.types'
 
-const anioMaximo = new Date().getFullYear() + 1
-
-const schema = z.object({
-  patente: z
-    .string()
-    .trim()
-    .refine(esPatenteValida, 'Patente inválida. Formatos: ABC123 o AB123CD'),
-  marca: z.string().trim().min(1, 'Ingresá la marca'),
-  modelo: z.string().trim().min(1, 'Ingresá el modelo'),
-  anio: z
-    .string()
-    .trim()
-    .refine(
-      (v) => v === '' || (/^\d{4}$/.test(v) && +v >= 1900 && +v <= anioMaximo),
-      'Año inválido',
-    ),
-  color: z.string().trim(),
-})
-
-type FormValues = z.infer<typeof schema>
+type FormValues = VehiculoValues
 
 type VehiculoFormProps = {
   clienteId: string
@@ -51,7 +32,7 @@ export function VehiculoForm({ clienteId, vehiculo }: VehiculoFormProps) {
     handleSubmit,
     formState: { errors },
   } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(vehiculoSchema),
     defaultValues: {
       patente: vehiculo?.patente ?? '',
       marca: vehiculo?.marca ?? '',

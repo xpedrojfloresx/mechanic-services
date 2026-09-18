@@ -9,6 +9,7 @@ import { ClienteFormPage } from '@/routes/cliente-form-page'
 import { ClientesPage } from '@/routes/clientes'
 import { ForgotPasswordPage } from '@/routes/forgot-password'
 import { HomePage } from '@/routes/home'
+import { IngresoPage } from '@/routes/ingreso-page'
 import { LoginPage } from '@/routes/login'
 import { ResetPasswordPage } from '@/routes/reset-password'
 import { VehiculoDetallePage } from '@/routes/vehiculo-detalle'
@@ -37,6 +38,7 @@ function App() {
             <Route path="/clientes/:id/editar" element={<ClienteFormPage />} />
             <Route path="/vehiculos/nuevo" element={<VehiculoFormPage />} />
             <Route path="/vehiculos/:id" element={<VehiculoDetallePage />} />
+            <Route path="/vehiculos/:id/ingreso" element={<IngresoPage />} />
             <Route
               path="/vehiculos/:id/editar"
               element={<VehiculoFormPage />}

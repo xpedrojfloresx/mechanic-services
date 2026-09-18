@@ -3,11 +3,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useServiciosDeVehiculo } from '@/features/servicios/api'
 import { useVehiculo } from '@/features/vehiculos/api'
 
 export function VehiculoDetallePage() {
   const { id } = useParams()
   const { data: vehiculo, isLoading, isError } = useVehiculo(id)
+  const { data: servicios } = useServiciosDeVehiculo(id)
 
   if (isLoading) return <Skeleton className="h-40 w-full" />
   if (isError || !vehiculo) {
@@ -53,11 +55,54 @@ export function VehiculoDetallePage() {
       </Card>
 
       <section className="flex flex-col gap-2">
-        <h2 className="font-semibold">Historial de servicios</h2>
-        <p className="text-muted-foreground text-sm">
-          Todavía no hay servicios registrados para este vehículo.
-        </p>
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold">Historial de servicios</h2>
+          <Button asChild size="sm">
+            <Link to={`/vehiculos/${vehiculo.id}/ingreso`}>Nuevo ingreso</Link>
+          </Button>
+        </div>
+        {servicios?.length === 0 && (
+          <p className="text-muted-foreground text-sm">
+            Todavía no hay servicios registrados para este vehículo.
+          </p>
+        )}
+        {servicios?.map((s) => (
+          <Card key={s.id}>
+            <CardContent className="flex flex-col gap-1 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-medium">{formatearFecha(s.fecha_ingreso)}</p>
+                <p className="text-muted-foreground">
+                  {s.km_al_ingreso.toLocaleString('es-AR')} km
+                </p>
+              </div>
+              {s.motivo_ingreso && (
+                <p>
+                  <span className="text-muted-foreground">Motivo: </span>
+                  {s.motivo_ingreso}
+                </p>
+              )}
+              {s.estado_al_ingreso && (
+                <p>
+                  <span className="text-muted-foreground">Llegó: </span>
+                  {s.estado_al_ingreso}
+                </p>
+              )}
+              {s.observaciones && (
+                <p>
+                  <span className="text-muted-foreground">Obs.: </span>
+                  {s.observaciones}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        ))}
       </section>
     </div>
   )
+}
+
+// La fecha viene como AAAA-MM-DD: se formatea a mano para evitar corrimientos de zona horaria.
+function formatearFecha(fecha: string) {
+  const [anio, mes, dia] = fecha.split('-')
+  return `${dia}/${mes}/${anio}`
 }

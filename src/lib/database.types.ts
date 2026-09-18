@@ -180,10 +180,12 @@ export type Database = {
         Row: {
           created_at: string
           estado: string | null
+          estado_al_ingreso: string | null
           fecha_entrega: string | null
           fecha_ingreso: string
           id: string
           km_al_ingreso: number
+          motivo_ingreso: string | null
           observaciones: string | null
           taller_id: string
           total: number | null
@@ -193,10 +195,12 @@ export type Database = {
         Insert: {
           created_at?: string
           estado?: string | null
+          estado_al_ingreso?: string | null
           fecha_entrega?: string | null
           fecha_ingreso?: string
           id?: string
           km_al_ingreso: number
+          motivo_ingreso?: string | null
           observaciones?: string | null
           taller_id: string
           total?: number | null
@@ -206,10 +210,12 @@ export type Database = {
         Update: {
           created_at?: string
           estado?: string | null
+          estado_al_ingreso?: string | null
           fecha_entrega?: string | null
           fecha_ingreso?: string
           id?: string
           km_al_ingreso?: number
+          motivo_ingreso?: string | null
           observaciones?: string | null
           taller_id?: string
           total?: number | null
@@ -342,6 +348,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      crear_cliente_completo: {
+        Args: { p_cliente: Json; p_ingreso?: Json; p_vehiculo?: Json }
+        Returns: string
+      }
       current_taller_id: { Args: never; Returns: string }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
