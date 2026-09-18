@@ -22,6 +22,16 @@ usa la contraseña de Pedro). Ver "Qué falta (Fase 3)".
 
 ## Hecho y verificado
 
+### Referencia competitiva (Vehix) y alcance (2026-09-18)
+
+Pedro compartió una referencia de Vehix; quedó como **regla permanente en `CLAUDE.md`** (sección "Alcance"): lista de lo que se suma al MVP, ideas para después y lo que **no** se construye (ARCA, caja/cuenta corriente, stock, sueldos, multi-sucursal, firma digital). Si se pide algo de esa lista, frenar y confirmar.
+
+Pendiente derivado, a criterio de Pedro y de menor a mayor esfuerzo:
+- **Modo ágil por defecto**: hoy "Recibir vehículo" pide bastante (nombre, teléfono, patente, marca, modelo, km, motivo…). Ver qué campos pasar a "más datos" colapsado (año, color, email, estado al llegar, fecha de ingreso).
+- **Botón "enviar por WhatsApp"** (`wa.me/<número>?text=`): requiere definir cómo armar el número (Argentina: `549` + área + número; Chile: `569` + 8 dígitos; ya se guarda solo dígitos) y el texto del mensaje. Pedir a Pedro el texto.
+- **Reasignar un vehículo a otro cliente** conservando su historial (cambiar `vehiculos.cliente_id`; los servicios cuelgan del vehículo, no del cliente).
+- Estado del servicio: ya cubierto (En taller / Listo / Entregado).
+
 ### Servicios múltiples, cliente visible y olvido de la entrega (2026-09-18, pedido de Pedro)
 
 Pedro pidió tres cosas; **no respondió** las dos preguntas de diseño que le hice (estructura de "servicio" y dónde vive "Añadir servicio"), así que se aplicó lo recomendado — **confirmar o corregir**.

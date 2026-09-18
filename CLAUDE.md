@@ -76,3 +76,35 @@ Ley 25.326 de Protección de Datos Personales de Argentina. Pedir datos
 mínimos, nada de campos de salud ni datos sensibles. Cualquier requisito legal
 que no esté claro se marca en `context.md` como duda para Pedro (eventualmente
 con un abogado), no se resuelve por cuenta propia.
+
+## Alcance: referencia competitiva (Vehix) y qué NO construir
+
+Vehix (vehix.com.ar) es un ERP maduro para talleres. **No es el modelo a
+copiar**: la mayoría de sus módulos son administración/contabilidad, fuera del
+núcleo de esta app. El diferencial de este producto es ser **más simple y
+barato**, no tener más features.
+
+**Sumado al MVP (baratas y de alto impacto):**
+- Botón "enviar por WhatsApp": abre `wa.me/<número>?text=<mensaje armado>` con
+  los datos del vehículo/servicio. Versión mínima, SIN WhatsApp Business API.
+- Estado del servicio (hecho: En taller / Listo / Entregado).
+- Reasignar un vehículo a otro cliente sin perder su historial.
+- **Modo ágil por defecto**: los formularios muestran solo lo indispensable; los
+  campos avanzados van ocultos/colapsados. Cargar rápido en el mostrador es
+  objetivo de diseño, no un extra.
+
+**Ideas para DESPUÉS del MVP (no construir ahora, no adelantarse):** fotos del
+vehículo/estado; dictado por voz (Web Speech API, en español); QR por vehículo
+hacia su ficha (uso interno; el portal público para el cliente va mucho después,
+con consentimiento y datos mínimos por la Ley 25.326); importar clientes/vehículos
+desde CSV; exportar a CSV; roles admin/mecánico; presupuesto/diagnóstico previos a
+la orden; turnero/agenda.
+
+**NO construir (fuera de alcance, aunque parezca útil):** facturación electrónica
+ARCA; caja, cheques, cuentas bancarias, cuenta corriente/deuda por cliente;
+stock/inventario con movimientos y alertas, compras a proveedores; sueldos,
+comisiones, liquidaciones; multi-sucursal, actas de custodia con firma digital,
+llaveros físicos.
+
+Si Pedro pide alguna de estas, **frenar y confirmar el alcance antes de construir**.
+
