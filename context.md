@@ -9,6 +9,13 @@
 salvedad: la prueba de aislamiento entre talleres con usuarios reales queda
 pendiente para la Fase 2 (ver "Qué falta" y "Verificación de RLS" más abajo).
 
+**Fase 2 (Autenticación): en curso.** Código de login/magic
+link/reset de contraseña + rutas protegidas ya escrito y probado en el
+navegador (sin sesión real todavía). Bloqueada en: (a) que Pedro cree su
+usuario en el Dashboard de Supabase, (b) que configure Site
+URL/Redirect URLs, (c) la clave SMTP de Brevo (para que magic
+link/reset lleguen por mail de verdad).
+
 ## Hecho y verificado
 
 - Proyecto Vite + React + TypeScript inicializado (`npm create vite@latest . -- --template react-ts`).
@@ -41,6 +48,13 @@ pendiente para la Fase 2 (ver "Qué falta" y "Verificación de RLS" más abajo).
   - Con `role anon` (sin login): `select count(*) from clientes` devuelve **0** filas — confirma que sin sesión no se ve nada.
   - Con `role authenticated` pero con un `sub` de JWT que no tiene fila en `usuarios` (usuario logueado sin perfil): también **0** filas — confirma que `current_taller_id()` devuelve `null` y las policies bloquean correctamente.
 - Tipos generados: `npx supabase gen types typescript --linked > src/lib/database.types.ts` (482 líneas, las 7 tablas presentes). `src/lib/supabase.ts` actualizado para usar `createClient<Database>(...)`. `npm run build` compila limpio con los tipos reales.
+- Instalado `react-router` (v8) para ruteo — decisión consultada con Pedro (no estaba en el stack del plan).
+- `src/features/auth/auth-context.tsx`: `AuthProvider` + hook `useAuth()`, suscripto a `supabase.auth.onAuthStateChange`.
+- `src/features/auth/hooks/use-usuario-actual.ts`: trae la fila de `usuarios` (con `taller_id`) del usuario logueado vía TanStack Query.
+- `src/features/auth/components/`: `login-form.tsx` (email+contraseña con React Hook Form + Zod, y sección colapsable "Otras formas de iniciar sesión" con magic link), `forgot-password-form.tsx`, `reset-password-form.tsx`, `require-auth.tsx` (`RequireAuth` redirige a `/login` sin sesión, `RedirectIfAuthed` redirige a `/` si ya hay sesión).
+- Rutas en `src/App.tsx`: `/login`, `/olvide-mi-contrasena` (públicas, redirigen a `/` si hay sesión), `/restablecer-contrasena` (pública, sin guard — la sesión de recuperación la arma el propio link del mail), `/` protegida (placeholder con email del usuario, su `taller_id` y botón de cerrar sesión).
+- Puerto de dev fijado en `5199` en `vite.config.ts` y `.claude/launch.json`: en esta máquina Windows, `5173`/`5174`/`5180` los tiene tomados un proceso `svchost` (no es el rango de exclusión de `netsh`, es un listener real — no se investigó de qué servicio es). `5199` está libre y es el que hay que usar en la config de Supabase Auth (Site URL / Redirect URLs).
+- Verificado en navegador (sin sesión real todavía): entrar a `/` redirige a `/login`; el formulario de login renderiza bien; "Otras formas de iniciar sesión" despliega el form de magic link; el link "¿Olvidaste tu contraseña?" navega a `/olvide-mi-contrasena` y ese formulario también renderiza bien. Sin errores de consola. `npm run build` y `npm run lint` limpios (solo el mismo warning benigno de siempre + uno nuevo igual de benigno en `auth-context.tsx` por exportar provider+hook juntos, patrón estándar de React).
 
 ## Qué falta (Fase 0)
 
@@ -56,6 +70,17 @@ pendiente para la Fase 2 (ver "Qué falta" y "Verificación de RLS" más abajo).
 - [x] Verificar RLS con `anon` y con `authenticated` sin perfil (0 filas en ambos casos).
 - [ ] **Verificación de RLS con dos talleres reales** ("un taller no ve datos de otro" tal cual lo pide el plan) queda pendiente hasta la Fase 2: para probarla de verdad hacen falta usuarios reales en `auth.users`, que se crean recién con el login. No se simuló insertando directo en `auth.users` porque son tablas internas de Supabase Auth y no quise adivinar su estructura exacta (regla de "no inventar"). Se hace como parte del criterio de "hecho" de la Fase 2, que ya pide explícitamente "solo ve su taller".
 
+## Qué falta (Fase 2)
+
+- [x] Código de login (email+contraseña), magic link, reset de contraseña, y protección de rutas.
+- [ ] **Bloqueo actual**: Pedro tiene que crear su usuario en el Dashboard de Supabase (Authentication → Users → Add user, con "Auto Confirm User" tildado) y avisarme el email que usó, para que yo cree el taller y la fila en `public.usuarios` que lo vincule.
+- [ ] Configurar en el Dashboard (Authentication → URL Configuration): Site URL `http://localhost:5199`, Redirect URLs `http://localhost:5199/**`.
+- [ ] Cuenta de Brevo + clave SMTP dedicada, y cargarla en Supabase (Authentication → Auth Settings → SMTP Settings) para que el magic link y el reset de contraseña lleguen por mail de verdad (mientras tanto, Supabase manda los mails con su propio servicio de test, con límites bajos — sirve para probar el flujo pero no para uso real).
+- [ ] Login con email+contraseña probado de punta a punta con un usuario real.
+- [ ] Magic link probado de punta a punta (recibir el mail y entrar).
+- [ ] Reset de contraseña probado de punta a punta (pedir el link, entrar, cambiar la contraseña, loguearse con la nueva).
+- [ ] La prueba de aislamiento entre dos talleres (heredada de la Fase 1) con dos usuarios reales.
+
 ## Decisiones tomadas y motivo
 
 - **Tailwind v4 en vez de v3**: es la versión estable actual (4.3.3 al momento de instalar), y shadcn/ui ya soporta el flujo CSS-first (`@import "tailwindcss"` + `@theme inline`), sin `tailwind.config.js`. No hay razón para instalar v3 en un proyecto nuevo.
@@ -69,6 +94,11 @@ pendiente para la Fase 2 (ver "Qué falta" y "Verificación de RLS" más abajo).
 - **Índices `pg_trgm` para búsqueda parcial** (`clientes.nombre`, `vehiculos.patente`) se agregaron ya en la Fase 1 en vez de esperar a la Fase 3, porque son parte del esquema/índices que pide el checklist de esta fase y evitan una migración extra después.
 - **Sin stack local de Supabase (Docker no disponible en esta máquina)**: no se pudo correr `supabase start` para probar las migraciones localmente antes de aplicarlas. Se aplicaron directo al proyecto remoto de Pedro con `supabase db push` después de que él hizo `supabase login`. Es una desviación menor de lo ideal (probar local primero) pero razonable dado el entorno, y terminó funcionando sin errores.
 - **Test de aislamiento entre talleres pospuesto a la Fase 2**: hacerlo bien requiere usuarios reales de `auth.users`, que no existen todavía (no hay login). No se simuló creando filas a mano en `auth.users` porque es una tabla interna de Supabase Auth (GoTrue) y no tengo certeza de su estructura exacta — se prefirió no inventar. En cambio se verificó lo que sí se puede probar sin usuarios reales: `anon` ve 0 filas, y `authenticated` sin perfil en `usuarios` también ve 0 filas.
+- **React Router elegido por Pedro** (sobre TanStack Router o rutas a mano) para las páginas de la app y la protección de rutas: no estaba definido en el stack del plan, se consultó explícitamente antes de instalar una librería nueva.
+- **Ruteo con componentes (`<BrowserRouter>`/`<Routes>`/`<Route>`)** en vez del modo "framework" de React Router (con su plugin de Vite y convención de archivos): para una app de este tamaño es más simple de entender y mantener por un solo desarrollador part-time, y no depende de una convención de carpetas nueva.
+- **`/restablecer-contrasena` es una ruta pública, sin guard de auth**: cuando el usuario toca el link del mail de reset, Supabase le arma una sesión de recuperación temporal (vía `detectSessionInUrl`), así que técnicamente "hay sesión" en ese momento. En vez de mezclar esa ruta con la lógica de `RequireAuth`/`RedirectIfAuthed`, se dejó aparte: si el link venció o es inválido, `supabase.auth.updateUser` devuelve error y se lo mostramos al usuario en el propio formulario.
+- **Creación de talleres/usuarios sigue siendo manual** (sin self-service, como pide el plan): el primer usuario (Pedro) se crea a mano desde el Dashboard de Supabase, y yo vinculo esa fila de `auth.users` a un `taller` y a `public.usuarios` por SQL. Si en el futuro se necesitan altas de usuario más frecuentes (para el máximo de 5 por taller), conviene armar una pantalla de invitación — no está en el alcance de esta fase.
+- **Puerto de dev fijo (`5199`)** en vez de dejar que Vite elija uno libre: Supabase Auth necesita que las Redirect URLs sean exactas (o un wildcard fijo), así que un puerto que cambie en cada corrida rompería el flujo de magic link/reset en desarrollo.
 
 ## Preguntas de la sección 5 — respondidas por Pedro (2026-09-18)
 
@@ -94,8 +124,9 @@ pendiente para la Fase 2 (ver "Qué falta" y "Verificación de RLS" más abajo).
 ## Pasos manuales pendientes para Pedro
 
 - Cuenta/bucket de Cloudflare R2 — se pospone (fotos no van en el MVP).
-- Cuenta de Brevo (SMTP) — se pide en la Fase 2, con instrucciones exactas en ese momento.
-- Antes de arrancar la Fase 2: decidir cómo se crea el primer usuario/perfil (Pedro) — probablemente Pedro se registre via Supabase Auth (UI que armemos) y yo le doy el SQL para insertarlo en `public.usuarios` con su `taller_id`, o directamente le doy los pasos para hacerlo desde el SQL Editor de Supabase. Se define al arrancar la Fase 2.
+- **Crear el usuario de Pedro** en Supabase Dashboard → Authentication → Users → Add user (con "Auto Confirm User" tildado) y avisar el email usado.
+- **Configurar Site URL / Redirect URLs** en Authentication → URL Configuration: `http://localhost:5199` y `http://localhost:5199/**`.
+- **Cuenta de Brevo** (SMTP): crear cuenta gratis en brevo.com, ir a Settings → SMTP & API → SMTP, generar una **clave SMTP dedicada** (no la API key) y pasarla para cargarla en Supabase (Authentication → Auth Settings → SMTP Settings). Se puede seguir probando el flujo sin esto (Supabase manda mails de prueba con su servicio propio, límites bajos), pero antes de usar la app con clientes reales hace falta.
 
 ## Comandos clave del proyecto
 
@@ -122,3 +153,5 @@ npx supabase gen types typescript --linked > src/lib/database.types.ts   # regen
 - @tanstack/react-query 5.103.1
 - @supabase/supabase-js 2.116.0
 - vite-plugin-pwa 1.3.0
+- supabase (CLI) 2.117.0
+- react-router 8.4.0 (agregado 2026-09-18, Fase 2)

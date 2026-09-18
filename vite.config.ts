@@ -31,4 +31,10 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
+  server: {
+    // 5173/5174/5180 los tiene tomados un proceso de Windows (svchost) en
+    // esta máquina, así que fijamos otro puerto para que sea siempre el
+    // mismo (coincide con la config de redirect URLs en Supabase Auth).
+    port: 5199,
+  },
 })

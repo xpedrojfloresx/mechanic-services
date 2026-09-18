@@ -1,9 +1,32 @@
+import { BrowserRouter, Route, Routes } from 'react-router'
+import {
+  RedirectIfAuthed,
+  RequireAuth,
+} from '@/features/auth/components/require-auth'
+import { ForgotPasswordPage } from '@/routes/forgot-password'
+import { HomePage } from '@/routes/home'
+import { LoginPage } from '@/routes/login'
+import { ResetPasswordPage } from '@/routes/reset-password'
+
 function App() {
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-2">
-      <h1 className="text-2xl font-semibold">Gestión de Talleres</h1>
-      <p className="text-muted-foreground">Fase 0: proyecto en construcción.</p>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<RedirectIfAuthed />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/olvide-mi-contrasena"
+            element={<ForgotPasswordPage />}
+          />
+        </Route>
+
+        <Route path="/restablecer-contrasena" element={<ResetPasswordPage />} />
+
+        <Route element={<RequireAuth />}>
+          <Route path="/" element={<HomePage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   )
 }
 
