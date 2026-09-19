@@ -57,7 +57,7 @@
 
 Públicas: `/login` (email+contraseña; sección "Otras formas de iniciar sesión" con magic link), `/olvide-mi-contrasena`, `/restablecer-contrasena` (sin guard: la sesión de recuperación la arma el link del mail).
 
-Protegidas (dentro de `AppLayout`: barra superior con botón de menú + **buscador global**, menú lateral en escritorio, **barra inferior en celular**: Inicio · Servicios · **Recibir** (destacado) · Clientes):
+Protegidas (dentro de `AppLayout`: barra superior con botón de menú + **buscador global**, menú lateral en escritorio, **barra inferior en celular**: Inicio · Servicios · Recibir · Clientes; **la sección activa se ve más grande y en azul** (antes "Recibir" era siempre el destacado y parecía la pantalla actual)):
 
 - `/` **Inicio**: botón grande "Recibir vehículo"; **"En el taller ahora"** (servicios En taller/Listo, el más viejo primero; botón de un toque para avanzar estado; aviso "¿Ya se entregó?" si lleva muchos días; ícono de WhatsApp); **"Para avisar"** (recordatorios vencidos o de este mes, top 3); **Resumen** (clientes, vehículos, en taller); **Insights** (gráficos Semana/Mes/Año de clientes y vehículos nuevos).
 - `/recibir?patente=` **Recibir vehículo** (flujo principal): escribir la patente → si existe, solo km + motivo (+ estado al llegar opcional; muestra el último km); si figura abierto en el taller pregunta "¿ya se entregó?" antes de abrir otro ingreso; si es nueva → "Cliente nuevo" o "Cliente que ya tengo" + datos del auto + ingreso en una pantalla. Al guardar cae en `/servicios/:id`.
