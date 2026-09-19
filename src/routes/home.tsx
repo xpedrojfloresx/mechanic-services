@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useConteos } from '@/features/resumen/api'
-import { Insights } from '@/features/resumen/components/insights'
 import { useRecordatorios } from '@/features/recordatorios/api'
 import { RecordatorioCard } from '@/features/recordatorios/components/recordatorio-card'
 import { useServicios } from '@/features/servicios/api'
@@ -90,8 +89,6 @@ export function HomePage() {
           <ResumenCard titulo="En taller" valor={conteos.data?.enTaller} />
         </div>
       </section>
-
-      <Insights />
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { desdePeriodo } from './insights-datos'
 import { armarBarras, type Rango } from './rangos'
 
 export function useConteos() {
@@ -47,6 +48,29 @@ export function useSerieAltas(tabla: 'clientes' | 'vehiculos', rango: Rango) {
         if (barra) barra.total++
       }
       return barras
+    },
+  })
+}
+
+// Servicios de los últimos 12 meses con sus renglones y la marca del vehículo:
+// alcanza para todos los gráficos de Insights (se filtran por período en el
+// navegador). PostgREST devuelve como máximo 1000 filas por consulta; si un
+// taller supera eso en un año, conviene pasar estas cuentas a una función SQL.
+export function useServiciosInsights() {
+  const desde = desdePeriodo('anio')
+  return useQuery({
+    queryKey: ['servicios', 'insights', desde],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('servicios')
+        .select(
+          'vehiculo_id, fecha_ingreso, fecha_entrega, motivo_ingreso, vehiculos(marca), servicio_items(descripcion, cantidad, precio)',
+        )
+        .gte('fecha_ingreso', desde)
+        .order('fecha_ingreso', { ascending: false })
+        .limit(1000)
+      if (error) throw error
+      return data
     },
   })
 }

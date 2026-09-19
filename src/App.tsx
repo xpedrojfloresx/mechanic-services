@@ -10,6 +10,7 @@ import { ClientesPage } from '@/routes/clientes'
 import { ForgotPasswordPage } from '@/routes/forgot-password'
 import { HomePage } from '@/routes/home'
 import { IngresoPage } from '@/routes/ingreso-page'
+import { InsightsPage } from '@/routes/insights'
 import { LoginPage } from '@/routes/login'
 import { NotFoundPage } from '@/routes/not-found'
 import { PerfilPage } from '@/routes/perfil'
@@ -43,6 +44,7 @@ function App() {
           <Route element={<AppLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/recibir" element={<RecibirPage />} />
+            <Route path="/insights" element={<InsightsPage />} />
             <Route path="/perfil" element={<PerfilPage />} />
             <Route path="/recordatorios" element={<RecordatoriosPage />} />
             <Route
