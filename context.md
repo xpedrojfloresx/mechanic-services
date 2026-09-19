@@ -55,6 +55,8 @@
 
 **"Último trabajo" al recibir** (2026-09-19, idea de `mecanico-ux` aprobada por Pedro; hecha por Claude, falta prueba de Pedro): en `/recibir`, cuando la patente ya existe, la tarjeta suma "Último trabajo: ..." con los servicios realizados del último ingreso o, si no hay, su motivo de ingreso (máx. 2 líneas; no se muestra si no hay nada). Solo el último trabajo, a pedido de Pedro; ampliar a 2 o 3 si queda corto. Sin cambios en la base.
 
+**Botón de volver en todas las pantallas** (2026-09-19, pedido de Pedro; hecho por Claude, falta prueba de Pedro): flecha en la barra superior de `AppLayout` (`BotonVolver`), en todo menos Inicio. Vuelve a la pantalla anterior (`navigate(-1)`); si se entró directo a la pantalla (sin historial en la app) va a Inicio. Limitación: tras guardar un formulario, "volver" puede regresar al formulario; si molesta, usar `replace` al navegar después de guardar. No aplica a `/login` ni a las pantallas fuera del layout.
+
 **Extras hechos a pedido de Pedro** (no son fases del plan): dashboard con menú lateral; insights con gráficos; teléfono AR/CL; eliminar clientes; ingreso del vehículo (motivo, estado al llegar); rediseño del flujo ("Recibir vehículo" por patente); buscador global; servicios múltiples por ingreso; avisos de "¿ya se entregó?"; modo ágil; cambiar de dueño; botón de WhatsApp; rediseño visual (sin animaciones).
 
 ## 3. Mapa de la app (rutas y pantallas)

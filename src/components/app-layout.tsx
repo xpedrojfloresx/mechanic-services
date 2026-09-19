@@ -1,4 +1,5 @@
 import {
+  ArrowLeft,
   Bell,
   CarFront,
   LayoutDashboard,
@@ -6,7 +7,7 @@ import {
   Users,
   Wrench,
 } from 'lucide-react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import {
   Sidebar,
@@ -135,6 +136,26 @@ function BarraInferior() {
   )
 }
 
+// Botón de volver: en todas las pantallas menos Inicio. Vuelve a la pantalla
+// anterior; si se entró directo a esta (link, app recién abierta), va a Inicio.
+function BotonVolver() {
+  const { pathname, key } = useLocation()
+  const navigate = useNavigate()
+  if (pathname === '/') return null
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="size-10 shrink-0"
+      aria-label="Volver"
+      onClick={() => (key === 'default' ? navigate('/') : navigate(-1))}
+    >
+      <ArrowLeft />
+    </Button>
+  )
+}
+
 export function AppLayout() {
   const { pathname } = useLocation()
 
@@ -151,6 +172,7 @@ export function AppLayout() {
         <SidebarInset>
           <header className="bg-background sticky top-0 z-30 flex h-14 items-center gap-2 border-b px-4">
             <SidebarTrigger />
+            <BotonVolver />
             {/* key: al cambiar de pantalla el buscador se limpia solo */}
             <BuscadorGlobal key={pathname} />
           </header>
