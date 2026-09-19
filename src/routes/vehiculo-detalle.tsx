@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useServiciosDeVehiculo } from '@/features/servicios/api'
 import { etiquetaEstado } from '@/features/servicios/estados'
 import { useVehiculo } from '@/features/vehiculos/api'
+import { MarcaLogo } from '@/features/vehiculos/components/marca-logo'
 import { ProximosServicios } from '@/features/recordatorios/components/proximos-servicios'
 import { useTallerActual } from '@/features/auth/hooks/use-taller-actual'
 import { BotonWhatsApp } from '@/features/whatsapp/components/boton-whatsapp'
@@ -32,6 +33,7 @@ export function VehiculoDetallePage() {
         <CardHeader className="flex-row items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-xl">
             <Patente size="md">{vehiculo.patente}</Patente>
+            <MarcaLogo marca={vehiculo.marca} />
             {vehiculo.marca} {vehiculo.modelo}
           </CardTitle>
           <Button asChild variant="outline" size="sm">
