@@ -9,6 +9,7 @@ import {
   useItems,
 } from '@/features/servicios/api'
 import { AgregarServiciosForm } from '@/features/servicios/components/agregar-servicios-form'
+import { CuadroCuenta } from '@/features/servicios/components/cuadro-cuenta'
 import { ItemForm } from '@/features/servicios/components/item-form'
 import { Badge } from '@/components/ui/badge'
 import { desgloseItems, etiquetaTipo } from '@/features/servicios/items'
@@ -114,31 +115,7 @@ export function ItemsSection({
         ),
       )}
 
-      {desglose.hayPrecios && (
-        <Card>
-          <CardContent className="flex flex-col gap-1 text-sm">
-            <FilaCuenta
-              texto="Repuestos"
-              valor={desglose.subtotalRepuestos}
-              mostrar={desglose.repuestos.length > 0}
-            />
-            <FilaCuenta
-              texto="Mano de obra"
-              valor={desglose.subtotalManoDeObra}
-              mostrar={desglose.manoDeObra.length > 0}
-            />
-            <FilaCuenta
-              texto="Sin clasificar"
-              valor={desglose.subtotalSinClasificar}
-              mostrar={desglose.sinClasificar.length > 0}
-            />
-            <div className="mt-1 flex items-center justify-between border-t pt-2 text-base font-semibold">
-              <span>Total</span>
-              <span>$ {formatoNumero.format(desglose.total)}</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {desglose.hayPrecios && <CuadroCuenta desglose={desglose} />}
 
       {contacto && items && items.length > 0 && (
         <BotonWhatsApp
@@ -160,15 +137,5 @@ export function ItemsSection({
         </Button>
       )}
     </section>
-  )
-}
-
-function FilaCuenta(props: { texto: string; valor: number; mostrar: boolean }) {
-  if (!props.mostrar) return null
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-muted-foreground">{props.texto}</span>
-      <span>$ {formatoNumero.format(props.valor)}</span>
-    </div>
   )
 }

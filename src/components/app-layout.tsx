@@ -1,6 +1,7 @@
 import {
   ArrowLeft,
   Bell,
+  Calculator,
   CarFront,
   ChartColumnIncreasing,
   LayoutDashboard,
@@ -40,6 +41,7 @@ const secciones = [
   { to: '/servicios', label: 'Servicios', icon: Wrench, end: false },
   { to: '/recordatorios', label: 'Recordatorios', icon: Bell, end: false },
   { to: '/clientes', label: 'Clientes', icon: Users, end: false },
+  { to: '/calculadora', label: 'Calculadora', icon: Calculator, end: false },
   // Solo en el menú lateral (no en la barra de abajo del celu): es la parte más técnica.
   {
     to: '/insights',

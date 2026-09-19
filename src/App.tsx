@@ -4,6 +4,7 @@ import {
   RedirectIfAuthed,
   RequireAuth,
 } from '@/features/auth/components/require-auth'
+import { CalculadoraPage } from '@/routes/calculadora'
 import { ClienteDetallePage } from '@/routes/cliente-detalle'
 import { ClienteFormPage } from '@/routes/cliente-form-page'
 import { ClientesPage } from '@/routes/clientes'
@@ -44,6 +45,7 @@ function App() {
           <Route element={<AppLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/recibir" element={<RecibirPage />} />
+            <Route path="/calculadora" element={<CalculadoraPage />} />
             <Route path="/insights" element={<InsightsPage />} />
             <Route path="/perfil" element={<PerfilPage />} />
             <Route path="/recordatorios" element={<RecordatoriosPage />} />

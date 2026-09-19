@@ -90,8 +90,9 @@ function resumen(items: Renglon[]) {
 // Detalle del trabajo para mandarle al cliente cuando se quiera (sin importar
 // el estado del servicio).
 export function mensajeDetalle(d: Datos, items: Renglon[]) {
-  const auto = `${d.marca} ${d.modelo} (${d.patente})`
-  return `Hola ${primerNombre(d.nombre)}, te paso el detalle del trabajo de tu ${auto} en ${d.taller}.${resumen(items)}`
+  // Sin vehículo (presupuesto desde la calculadora) no se nombra el auto.
+  const auto = d.patente ? ` de tu ${d.marca} ${d.modelo} (${d.patente})` : ''
+  return `Hola ${primerNombre(d.nombre)}, te paso el detalle del trabajo${auto} en ${d.taller}.${resumen(items)}`
 }
 
 // Mensaje según cómo va el trabajo.
