@@ -75,7 +75,11 @@ function AppSidebar() {
             </p>
           </div>
         </Link>
-        <Button asChild onClick={() => setOpenMobile(false)}>
+        <Button
+          asChild
+          className="h-12 text-base md:h-8 md:text-sm"
+          onClick={() => setOpenMobile(false)}
+        >
           <Link to="/recibir">
             <CarFront /> Recibir vehículo
           </Link>
@@ -88,7 +92,11 @@ function AppSidebar() {
             <SidebarMenu>
               {secciones.map((s) => (
                 <SidebarMenuItem key={s.to}>
-                  <SidebarMenuButton asChild>
+                  {/* En el celu más grandes: se tocan con el pulgar. */}
+                  <SidebarMenuButton
+                    asChild
+                    className="h-12 gap-3 text-base md:h-8 md:gap-2 md:text-sm [&>svg]:size-5 md:[&>svg]:size-4"
+                  >
                     <NavLink
                       to={s.to}
                       end={s.end}
@@ -111,6 +119,7 @@ function AppSidebar() {
         <Button
           variant="outline"
           size="sm"
+          className="h-10 text-base md:h-7 md:text-[0.8rem]"
           onClick={() => supabase.auth.signOut()}
         >
           <LogOut /> Cerrar sesión

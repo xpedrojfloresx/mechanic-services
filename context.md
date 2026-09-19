@@ -71,6 +71,8 @@
 
 **Calculadora de gastos (pestaña `/calculadora`)** (2026-09-19, pedido de Pedro; hecha por Claude, falta prueba con datos reales): solo en el menú lateral (no en la barra de abajo del celu; ajustable). Se arman renglones (Repuesto / Mano de obra, qué es, cantidad, precio) con el total en vivo (`CuadroCuenta`, compartido con la ficha del servicio) y **al final se elige el cliente** (`features/calculadora/components/destino-calculo.tsx`): si tiene varios autos se elige uno (con uno solo se elige solo). Dos acciones, a pedido de Pedro: **Enviar detalle por WhatsApp** (mensaje de presupuesto; sin auto si no se eligió) y **Guardar como servicio**, que agrega los renglones al ingreso abierto del auto (si hay varios abiertos se elige cuál); **si el auto no está recibido en el taller, se lo manda a Recibir vehículo** (misma regla que "Añadir servicio": no se crean ingresos sin km). No guarda nada por sí sola ni tiene borradores. Sin cambios en la base.
 
+**Menú lateral más grande en el celu** (2026-09-19, pedido de Pedro): en pantallas menores a 768 px los botones del menú lateral miden 48 px con letra de 16 px e íconos de 20 px (antes 32 px), el botón Recibir vehículo 48 px y Cerrar sesión 40 px; en escritorio siguen igual. Ajustable en `AppSidebar` de `components/app-layout.tsx`.
+
 **Extras hechos a pedido de Pedro** (no son fases del plan): dashboard con menú lateral; insights con gráficos; teléfono AR/CL; eliminar clientes; ingreso del vehículo (motivo, estado al llegar); rediseño del flujo ("Recibir vehículo" por patente); buscador global; servicios múltiples por ingreso; avisos de "¿ya se entregó?"; modo ágil; cambiar de dueño; botón de WhatsApp; rediseño visual (sin animaciones).
 
 ## 3. Mapa de la app (rutas y pantallas)
