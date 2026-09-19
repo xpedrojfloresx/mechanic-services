@@ -25,3 +25,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Archivos sueltos con secretos: nunca al repositorio
+TelegramWebhookSecret.txt
+*.secret
+*.secret.txt
