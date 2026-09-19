@@ -1,19 +1,26 @@
-// Bot de Telegram por voz, etapa 1 (prueba de conexión): recibe una nota de voz
-// o un texto y responde lo que entendió. Todavía NO toca datos de la app.
-// Diseño completo en context.md §15. Corre en una Edge Function de Supabase
-// (Deno), con webhook. Los secretos se cargan con `supabase secrets set`.
-import { Bot, webhookCallback } from 'npm:grammy'
-
-function entorno(nombre: string) {
-  const valor = Deno.env.get(nombre)
-  if (!valor) throw new Error(`Falta el secreto ${nombre}`)
-  return valor
-}
+// Bot de Telegram por voz, etapa 2a: el mecánico manda una nota de voz o un
+// texto y el bot BUSCA información en la app (solo lectura): un vehículo por
+// patente, lo que hay en el taller y la ficha de un cliente. Todavía no
+// modifica nada. Diseño completo en context.md §15. Corre en una Edge Function
+// de Supabase (Deno), con webhook; los secretos se cargan con
+// `supabase secrets set`.
+import { Bot, InlineKeyboard, webhookCallback } from 'npm:grammy'
+import { entorno, rpc } from './datos.ts'
+import {
+  textoCliente,
+  textoEstadoTaller,
+  textoVehiculo,
+  type FichaCliente,
+  type FichaVehiculo,
+} from './formato.ts'
+import { interpretar } from './llm.ts'
+import { esPatenteValida, normalizarPatente } from './patente.ts'
 
 const token = entorno('TELEGRAM_BOT_TOKEN')
 const secretoWebhook = entorno('TELEGRAM_WEBHOOK_SECRET')
 const claveGroq = entorno('GROQ_API_KEY')
-// Ids numéricos de Telegram autorizados, separados por coma.
+// Ids numéricos de Telegram autorizados, separados por coma (primer filtro; el
+// segundo es la tabla telegram_usuarios, que además define el taller).
 const permitidos = new Set(
   entorno('TELEGRAM_ALLOWED_IDS')
     .split(',')
@@ -71,8 +78,147 @@ bot.use(async (ctx, next) => {
   await next()
 })
 
+// Telegram reintenta si tarda: un mensaje ya procesado no se vuelve a atender.
+bot.use(async (ctx, next) => {
+  let esNuevo = true
+  try {
+    esNuevo = await rpc<boolean>('bot_registrar_update', {
+      p_update_id: ctx.update.update_id,
+    })
+  } catch (error) {
+    console.error('No se pudo registrar el update:', error)
+  }
+  if (!esNuevo) return
+  await next()
+})
+
+async function registrar(
+  usuario: number,
+  texto: string,
+  accion: string,
+  resultado: string,
+) {
+  try {
+    await rpc('bot_registrar_log', {
+      p_telegram_user_id: usuario,
+      p_texto: texto,
+      p_accion: accion,
+      p_resultado: resultado,
+    })
+  } catch (error) {
+    console.error('No se pudo guardar el registro:', error)
+  }
+}
+
+const esNoAutorizado = (error: unknown) =>
+  String((error as { message?: string })?.message ?? error).includes(
+    'no_autorizado',
+  )
+
+// Interpreta el texto (que puede venir de un audio) y responde.
+async function atender(
+  ctx: Parameters<Parameters<typeof bot.on>[1]>[0],
+  texto: string,
+) {
+  const usuario = ctx.from!.id
+  let accion = 'ninguna'
+  try {
+    await ctx.replyWithChatAction('typing')
+    const orden = await interpretar(texto)
+    accion = orden.tipo
+
+    if (orden.tipo === 'buscar_vehiculo') {
+      const patente = normalizarPatente(orden.patente)
+      if (!esPatenteValida(patente)) {
+        await ctx.reply(
+          `No entendí bien la patente ("${orden.patente}"). Decímela de nuevo, por favor.`,
+        )
+      } else {
+        const ficha = await rpc<FichaVehiculo | null>('bot_buscar_vehiculo', {
+          p_telegram_user_id: usuario,
+          p_patente: patente,
+        })
+        await ctx.reply(
+          ficha
+            ? textoVehiculo(ficha)
+            : `No encontré la patente ${patente} en el taller.`,
+        )
+      }
+    } else if (orden.tipo === 'estado_del_taller') {
+      const filas = await rpc<Parameters<typeof textoEstadoTaller>[0]>(
+        'bot_estado_taller',
+        { p_telegram_user_id: usuario },
+      )
+      await ctx.reply(textoEstadoTaller(filas, orden.soloListos))
+    } else if (orden.tipo === 'buscar_cliente') {
+      const clientes = await rpc<
+        { id: string; nombre: string; telefono: string | null }[]
+      >('bot_buscar_clientes', {
+        p_telegram_user_id: usuario,
+        p_nombre: orden.nombre,
+      })
+      if (clientes.length === 0) {
+        await ctx.reply(
+          `No encontré ningún cliente que se llame "${orden.nombre}".`,
+        )
+      } else if (clientes.length === 1) {
+        await enviarFichaCliente(ctx, usuario, clientes[0].id)
+      } else {
+        const teclado = new InlineKeyboard()
+        for (const c of clientes) {
+          teclado
+            .text(
+              `${c.nombre}${c.telefono ? ` · ${c.telefono}` : ''}`,
+              `c:${c.id}`,
+            )
+            .row()
+        }
+        await ctx.reply(
+          clientes.length >= 6
+            ? 'Hay varios clientes con ese nombre (muestro 6). ¿Cuál? Si no está, decime el nombre completo.'
+            : `Encontré ${clientes.length} clientes con ese nombre. ¿Cuál?`,
+          { reply_markup: teclado },
+        )
+      }
+    } else {
+      await ctx.reply(
+        orden.respuesta ||
+          'Por ahora puedo buscar un vehículo por patente, decirte qué hay en el taller y buscar la información de un cliente.',
+      )
+    }
+    await registrar(usuario, texto, accion, 'ok')
+  } catch (error) {
+    console.error('Error al atender el pedido:', error)
+    await registrar(
+      usuario,
+      texto,
+      accion,
+      `error: ${String((error as Error)?.message ?? error)}`,
+    )
+    await ctx.reply(
+      esNoAutorizado(error)
+        ? 'Tu usuario de Telegram todavía no está vinculado a la app.'
+        : 'No pude resolverlo. Probá de nuevo.',
+    )
+  }
+}
+
+async function enviarFichaCliente(
+  ctx: Parameters<Parameters<typeof bot.on>[1]>[0],
+  usuario: number,
+  clienteId: string,
+) {
+  const ficha = await rpc<FichaCliente | null>('bot_ficha_cliente', {
+    p_telegram_user_id: usuario,
+    p_cliente_id: clienteId,
+  })
+  await ctx.reply(ficha ? textoCliente(ficha) : 'No encontré ese cliente.')
+}
+
 bot.command('start', (ctx) =>
-  ctx.reply('Listo. Mandame una nota de voz o un texto y te digo qué entendí.'),
+  ctx.reply(
+    'Listo. Mandame una nota de voz o un texto. Por ejemplo: "buscá la patente AB123CD", "qué hay en el taller" o "qué datos tenés de Juan Pérez".',
+  ),
 )
 
 bot.on('message:voice', async (ctx) => {
@@ -82,6 +228,7 @@ bot.on('message:voice', async (ctx) => {
     )
     return
   }
+  let texto = ''
   try {
     const archivo = await ctx.getFile()
     const descarga = await fetch(
@@ -89,19 +236,40 @@ bot.on('message:voice', async (ctx) => {
     )
     if (!descarga.ok)
       throw new Error(`Telegram respondió ${descarga.status} al bajar el audio`)
-    const texto = await transcribir(await descarga.blob())
-    await ctx.reply(
-      texto ? `Entendí: "${texto}"` : 'No entendí nada en el audio.',
-    )
+    texto = await transcribir(await descarga.blob())
   } catch (error) {
     console.error('Error al procesar el audio:', error)
     await ctx.reply('No pude procesar el audio. Probá de nuevo.')
+    return
   }
+  if (!texto) {
+    await ctx.reply('No entendí nada en el audio.')
+    return
+  }
+  // Se muestra lo que se entendió: si Whisper se equivocó, se nota enseguida.
+  await ctx.reply(`🎤 Entendí: "${texto}"`)
+  await atender(ctx, texto)
 })
 
-bot.on('message:text', (ctx) =>
-  ctx.reply(`Recibí tu texto: "${ctx.message.text}"`),
-)
+bot.on('message:text', (ctx) => atender(ctx, ctx.message.text))
+
+// Botón para elegir entre varios clientes con el mismo nombre.
+bot.callbackQuery(/^c:([0-9a-f-]{36})$/, async (ctx) => {
+  await ctx.answerCallbackQuery()
+  const usuario = ctx.from.id
+  try {
+    await enviarFichaCliente(ctx, usuario, ctx.match[1])
+    await registrar(
+      usuario,
+      `(botón) cliente ${ctx.match[1]}`,
+      'ficha_cliente',
+      'ok',
+    )
+  } catch (error) {
+    console.error('Error al mostrar la ficha:', error)
+    await ctx.reply('No pude resolverlo. Probá de nuevo.')
+  }
+})
 
 // Un error no debe hacer que Telegram reintente el mismo mensaje una y otra vez.
 bot.catch((error) => console.error('Error del bot:', error.error))
