@@ -7,6 +7,8 @@ export type PropuestaProximo = {
   servicioId: string
   vehiculoId: string
   auto: string
+  // Km del ingreso: solo de referencia para el ejemplo del campo de km.
+  km: number
 }
 
 let propuesta: PropuestaProximo | null = null

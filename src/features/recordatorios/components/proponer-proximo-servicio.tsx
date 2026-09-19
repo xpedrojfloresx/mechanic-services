@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { FormField } from '@/components/form-field'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -19,6 +21,7 @@ import {
 } from '@/features/recordatorios/proponer-proximo'
 import { useItems } from '@/features/servicios/api'
 import { hoyLocal } from '@/features/servicios/schema'
+import { formatoNumero } from '@/lib/formato'
 
 const PLAZOS = [
   { meses: 3, texto: '3 meses' },
@@ -46,12 +49,24 @@ function Cartel({
   const { data: items } = useItems(propuesta.servicioId)
   const crear = useCrearRecordatorio(taller?.id)
   const [error, setError] = useState(false)
+  const [km, setKm] = useState('')
+  const [errorKm, setErrorKm] = useState('')
 
   // Si el auto ya tiene algo programado, no se ofrece otro.
   const abierto = pendientes !== undefined && pendientes.length === 0
 
   async function programar(meses: number) {
     setError(false)
+    // Mismo criterio que el formulario de recordatorios: solo dígitos, hasta 3.000.000.
+    const kmLimpio = km.trim()
+    if (
+      kmLimpio !== '' &&
+      !(/^\d+$/.test(kmLimpio) && Number(kmLimpio) <= 3_000_000)
+    ) {
+      setErrorKm('Kilometraje inválido (solo números)')
+      return
+    }
+    setErrorKm('')
     const nota =
       (items ?? [])
         .map((i) => i.descripcion)
@@ -63,7 +78,7 @@ function Cartel({
         values: {
           nota,
           fechaEstimada: sumarMeses(hoyLocal(), meses),
-          targetKm: null,
+          targetKm: kmLimpio === '' ? null : Number(kmLimpio),
         },
       })
       cerrarPropuestaProximo()
@@ -82,8 +97,8 @@ function Cartel({
         <AlertDialogHeader>
           <AlertDialogTitle>¿Programar el próximo servicio?</AlertDialogTitle>
           <AlertDialogDescription>
-            {propuesta.auto} se entregó. Elegí cuándo avisarle al cliente para
-            que vuelva.
+            {propuesta.auto} se entregó. Elegí en cuánto tiempo avisarle al
+            cliente para que vuelva y, si querés, a qué kilometraje.
           </AlertDialogDescription>
         </AlertDialogHeader>
         {error && (
@@ -91,6 +106,19 @@ function Cartel({
             No pudimos programarlo. Probá de nuevo.
           </p>
         )}
+        <FormField
+          id="prox-km"
+          label="A los cuántos km (opcional)"
+          error={errorKm}
+        >
+          <Input
+            id="prox-km"
+            inputMode="numeric"
+            placeholder={`Ej: ${formatoNumero.format(propuesta.km + 10000)} (hoy ${formatoNumero.format(propuesta.km)})`}
+            value={km}
+            onChange={(e) => setKm(e.target.value)}
+          />
+        </FormField>
         <div className="grid grid-cols-3 gap-2">
           {PLAZOS.map((p) => (
             <Button

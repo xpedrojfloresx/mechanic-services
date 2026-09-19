@@ -63,6 +63,7 @@ export function ServicioDetallePage() {
           servicioId: servicio.id,
           vehiculoId: servicio.vehiculo_id,
           auto: `${vehiculo?.marca ?? ''} ${vehiculo?.modelo ?? ''} ${vehiculo?.patente ?? ''}`.trim(),
+          km: servicio.km_al_ingreso,
         })
       }
     } catch (e) {

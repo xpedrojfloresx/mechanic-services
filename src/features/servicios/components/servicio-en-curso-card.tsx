@@ -82,6 +82,7 @@ export function ServicioEnCursoCard({ servicio }: { servicio: Servicio }) {
       servicioId: servicio.id,
       vehiculoId: servicio.vehiculo_id,
       auto: `${v?.marca ?? ''} ${v?.modelo ?? ''} ${v?.patente ?? ''}`.trim(),
+      km: servicio.km_al_ingreso,
     })
   }
 
