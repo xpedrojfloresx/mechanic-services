@@ -12,6 +12,7 @@ import { HomePage } from '@/routes/home'
 import { IngresoPage } from '@/routes/ingreso-page'
 import { LoginPage } from '@/routes/login'
 import { NotFoundPage } from '@/routes/not-found'
+import { PerfilPage } from '@/routes/perfil'
 import { RecibirPage } from '@/routes/recibir'
 import { RecordatorioNuevoPage } from '@/routes/recordatorio-nuevo'
 import { RecordatoriosPage } from '@/routes/recordatorios'
@@ -42,6 +43,7 @@ function App() {
           <Route element={<AppLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/recibir" element={<RecibirPage />} />
+            <Route path="/perfil" element={<PerfilPage />} />
             <Route path="/recordatorios" element={<RecordatoriosPage />} />
             <Route
               path="/recordatorios/nuevo"

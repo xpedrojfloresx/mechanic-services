@@ -246,16 +246,19 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          logo: string | null
           nombre: string
         }
         Insert: {
           created_at?: string
           id?: string
+          logo?: string | null
           nombre: string
         }
         Update: {
           created_at?: string
           id?: string
+          logo?: string | null
           nombre?: string
         }
         Relationships: []
@@ -265,6 +268,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          nombre: string | null
           rol: string
           taller_id: string
         }
@@ -272,6 +276,7 @@ export type Database = {
           created_at?: string
           email: string
           id: string
+          nombre?: string | null
           rol?: string
           taller_id: string
         }
@@ -279,6 +284,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          nombre?: string | null
           rol?: string
           taller_id?: string
         }
@@ -360,6 +366,14 @@ export type Database = {
         Returns: string
       }
       current_taller_id: { Args: never; Returns: string }
+      guardar_perfil: {
+        Args: {
+          p_logo?: string
+          p_nombre_mecanico: string
+          p_nombre_taller: string
+        }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }

@@ -25,8 +25,10 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { LogoTaller } from '@/components/logo-taller'
 import { useAuth } from '@/features/auth/auth-context'
 import { useTallerActual } from '@/features/auth/hooks/use-taller-actual'
+import { useUsuarioActual } from '@/features/auth/hooks/use-usuario-actual'
 import { BuscadorGlobal } from '@/features/busqueda/components/buscador-global'
 import { ProponerProximoServicio } from '@/features/recordatorios/components/proponer-proximo-servicio'
 import { supabase } from '@/lib/supabase'
@@ -42,15 +44,27 @@ const secciones = [
 function AppSidebar() {
   const { user } = useAuth()
   const { data: taller } = useTallerActual()
+  const { data: usuario } = useUsuarioActual()
   const { setOpenMobile } = useSidebar()
 
   return (
     <Sidebar>
       <SidebarHeader className="gap-3 p-4">
-        <div>
-          <p className="font-semibold">{taller?.nombre ?? 'Talleres'}</p>
-          <p className="text-muted-foreground text-xs">Mechanic Services</p>
-        </div>
+        <Link
+          to="/perfil"
+          onClick={() => setOpenMobile(false)}
+          className="hover:bg-sidebar-accent -m-2 flex items-center gap-3 rounded-lg p-2"
+        >
+          <LogoTaller logo={taller?.logo} />
+          <div className="min-w-0">
+            <p className="truncate font-semibold">
+              {taller?.nombre ?? 'Talleres'}
+            </p>
+            <p className="text-muted-foreground truncate text-xs">
+              {usuario?.nombre ?? 'Agregá tu nombre'}
+            </p>
+          </div>
+        </Link>
         <Button asChild onClick={() => setOpenMobile(false)}>
           <Link to="/recibir">
             <CarFront /> Recibir vehículo
