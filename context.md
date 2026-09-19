@@ -73,13 +73,15 @@
 
 **Menú lateral más grande en el celu** (2026-09-19, pedido de Pedro): en pantallas menores a 768 px los botones del menú lateral miden 48 px con letra de 16 px e íconos de 20 px (antes 32 px), el botón Recibir vehículo 48 px y Cerrar sesión 40 px; en escritorio siguen igual. Ajustable en `AppSidebar` de `components/app-layout.tsx`.
 
+**Barra inferior del celu rediseñada** (2026-09-19, pedido de Pedro; hecha por Claude, falta prueba en un celu real): cinco lugares — Inicio · Servicios · **Recibir** (en el medio, círculo azul de 56 px flotando 27 px sobre la barra) · Calculadora · Clientes. La pantalla activa ya no se agranda: se marca con el ícono y el texto en azul y una línea azul arriba (estilo Mercado Pago); Recibir activo suma un aro azul. Insights sigue solo en el menú lateral. Reemplaza lo de "la sección activa se ve más grande y en azul". Está en `BarraInferior` de `components/app-layout.tsx`.
+
 **Extras hechos a pedido de Pedro** (no son fases del plan): dashboard con menú lateral; insights con gráficos; teléfono AR/CL; eliminar clientes; ingreso del vehículo (motivo, estado al llegar); rediseño del flujo ("Recibir vehículo" por patente); buscador global; servicios múltiples por ingreso; avisos de "¿ya se entregó?"; modo ágil; cambiar de dueño; botón de WhatsApp; rediseño visual (sin animaciones).
 
 ## 3. Mapa de la app (rutas y pantallas)
 
 Públicas: `/login` (email+contraseña; sección "Otras formas de iniciar sesión" con magic link), `/olvide-mi-contrasena`, `/restablecer-contrasena` (sin guard: la sesión de recuperación la arma el link del mail).
 
-Protegidas (dentro de `AppLayout`: barra superior con botón de menú + **buscador global**, menú lateral en escritorio, **barra inferior en celular**: Inicio · Servicios · Recibir · Clientes; **la sección activa se ve más grande y en azul** (antes "Recibir" era siempre el destacado y parecía la pantalla actual)):
+Protegidas (dentro de `AppLayout`: barra superior con botón de menú + **buscador global**, menú lateral en escritorio, **barra inferior en celular**: Inicio · Servicios · **Recibir** (flotante en el medio) · Calculadora · Clientes; la sección activa se marca con ícono azul y una línea azul arriba (ver más abajo)):
 
 - `/` **Inicio**: botón grande "Recibir vehículo"; **"En el taller ahora"** (servicios En taller/Listo, el más viejo primero; botón de un toque para avanzar estado; aviso "¿Ya se entregó?" si lleva muchos días; ícono de WhatsApp); **"Para avisar"** (recordatorios vencidos o de este mes, top 3); **Resumen** (clientes, vehículos, en taller); **Insights** (gráficos Semana/Mes/Año de clientes y vehículos nuevos).
 - `/recibir?patente=` **Recibir vehículo** (flujo principal): escribir la patente → si existe, solo km + motivo (+ estado al llegar opcional; muestra el último km); si figura abierto en el taller pregunta "¿ya se entregó?" antes de abrir otro ingreso; si es nueva → "Cliente nuevo" o "Cliente que ya tengo" + datos del auto + ingreso en una pantalla. Al guardar cae en `/servicios/:id`.

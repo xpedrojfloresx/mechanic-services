@@ -129,8 +129,10 @@ function AppSidebar() {
   )
 }
 
-// Barra inferior para el celular: lo que más se usa, siempre a un toque. La
-// sección donde se está parado se ve más grande y en el color de acento.
+// Barra inferior para el celular: lo que más se usa, siempre a un toque.
+// Recibir va en el medio, más grande y flotando sobre la barra. La pantalla
+// donde se está parado se marca con el ícono en azul y una línea azul arriba
+// (sin cambiar el tamaño de nada).
 function BarraInferior() {
   const item = (
     to: string,
@@ -143,16 +145,20 @@ function BarraInferior() {
       end={end}
       className={({ isActive }) =>
         cn(
-          'flex flex-1 flex-col items-center gap-0.5 text-xs',
-          isActive
-            ? 'bg-primary text-primary-foreground -mt-5 rounded-2xl px-3 py-2 font-medium shadow-md'
-            : 'text-muted-foreground py-2',
+          'relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-xs',
+          isActive ? 'text-primary font-medium' : 'text-muted-foreground',
         )
       }
     >
       {({ isActive }) => (
         <>
-          <Icono className={isActive ? 'size-6' : 'size-5'} />
+          {isActive && (
+            <span
+              aria-hidden
+              className="bg-primary absolute inset-x-5 top-0 h-0.5 rounded-b-full"
+            />
+          )}
+          <Icono className="size-6" />
           {label}
         </>
       )}
@@ -160,10 +166,34 @@ function BarraInferior() {
   )
 
   return (
-    <nav className="bg-background fixed inset-x-0 bottom-0 z-20 flex items-center gap-1 border-t px-2 pb-[env(safe-area-inset-bottom)] md:hidden">
+    <nav className="bg-background fixed inset-x-0 bottom-0 z-20 flex items-stretch border-t px-1 pb-[env(safe-area-inset-bottom)] md:hidden">
       {item('/', 'Inicio', LayoutDashboard, true)}
       {item('/servicios', 'Servicios', Wrench)}
-      {item('/recibir', 'Recibir', CarFront)}
+      <NavLink
+        to="/recibir"
+        className={({ isActive }) =>
+          cn(
+            'relative flex flex-1 flex-col items-center justify-end pb-2 text-xs font-medium',
+            isActive ? 'text-primary' : 'text-muted-foreground',
+          )
+        }
+      >
+        {({ isActive }) => (
+          <>
+            {/* Flota sobre la barra; en Recibir suma un aro para marcar que se está ahí. */}
+            <span
+              className={cn(
+                'bg-primary text-primary-foreground absolute -top-7 flex size-14 items-center justify-center rounded-full shadow-lg',
+                isActive && 'ring-primary/30 ring-4',
+              )}
+            >
+              <CarFront className="size-6" />
+            </span>
+            <span className="mt-8">Recibir</span>
+          </>
+        )}
+      </NavLink>
+      {item('/calculadora', 'Calculadora', Calculator)}
       {item('/clientes', 'Clientes', Users)}
     </nav>
   )
