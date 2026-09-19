@@ -189,7 +189,12 @@ function elegirCandidato(texto: string, pendiente: Aclaracion) {
 }
 
 // Guarda la pregunta (vence a los 5 minutos) y la muestra con botones.
-async function preguntar(ctx: Ctx, usuario: number, pendiente: Aclaracion) {
+async function preguntar(
+  ctx: Ctx,
+  usuario: number,
+  pendiente: Aclaracion,
+  textoClientes?: string,
+) {
   await rpc('bot_guardar_aclaracion', {
     p_telegram_user_id: usuario,
     p_tipo: pendiente.tipo,
@@ -216,9 +221,12 @@ async function preguntar(ctx: Ctx, usuario: number, pendiente: Aclaracion) {
         .text(`${c.nombre}${c.telefono ? ` · ${c.telefono}` : ''}`, `k:${c.id}`)
         .row()
     }
-    await ctx.reply(textoPreguntaClientes(pendiente.candidatos.length), {
-      reply_markup: teclado,
-    })
+    await ctx.reply(
+      textoClientes ?? textoPreguntaClientes(pendiente.candidatos.length),
+      {
+        reply_markup: teclado,
+      },
+    )
   }
 }
 
@@ -312,6 +320,21 @@ async function resolverVehiculo(
     p_modelo: orden.modelo || null,
     p_requiere_ingreso: requiereIngreso,
   })
+  if (r.error === 'cliente_no_existe' && orden.cliente) {
+    const parecidos = await rpc<ClienteCandidato[]>('bot_clientes_parecidos', {
+      p_telegram_user_id: usuario,
+      p_nombre: orden.cliente,
+    })
+    if (parecidos.length > 0) {
+      await preguntar(
+        ctx,
+        usuario,
+        { tipo: 'clientes', orden, candidatos: parecidos },
+        `No encontré a "${orden.cliente}". ¿Quisiste decir alguno de estos? Escribí el nombre bien o tocá un botón.`,
+      )
+      return
+    }
+  }
   if (r.error) {
     await ctx.reply(textoErrorResolver(r.error, r.cliente, patente || dicha))
   } else if (r.tipo === 'clientes' && r.clientes) {
@@ -374,6 +397,20 @@ async function atender(ctx: Ctx, texto: string) {
         return
       }
       const respuestaCorta = texto.trim().split(/\s+/).length <= 3
+      if (
+        pendiente.tipo === 'clientes' &&
+        respuestaCorta &&
+        elegidos.length === 0
+      ) {
+        // Está corrigiendo el nombre: se busca con lo que escribió.
+        await rpc('bot_borrar_aclaracion', { p_telegram_user_id: usuario })
+        await resolverVehiculo(ctx, usuario, {
+          ...pendiente.orden,
+          cliente: texto.trim(),
+        })
+        await registrar(usuario, texto, 'aclaracion', 'nombre corregido')
+        return
+      }
       if (elegidos.length > 1 || respuestaCorta) {
         // Varias coinciden (por ejemplo, dos autos del mismo modelo) o no se
         // entendió una respuesta corta: se vuelve a preguntar.
@@ -432,9 +469,29 @@ async function atender(ctx: Ctx, texto: string) {
         p_nombre: orden.nombre,
       })
       if (clientes.length === 0) {
-        await ctx.reply(
-          `No encontré ningún cliente que se llame "${orden.nombre}".`,
+        const parecidos = await rpc<ClienteCandidato[]>(
+          'bot_clientes_parecidos',
+          { p_telegram_user_id: usuario, p_nombre: orden.nombre },
         )
+        if (parecidos.length === 0) {
+          await ctx.reply(
+            `No encontré ningún cliente que se llame "${orden.nombre}".`,
+          )
+        } else {
+          const teclado = new InlineKeyboard()
+          for (const c of parecidos) {
+            teclado
+              .text(
+                `${c.nombre}${c.telefono ? ` · ${c.telefono}` : ''}`,
+                `c:${c.id}`,
+              )
+              .row()
+          }
+          await ctx.reply(
+            `No encontré a "${orden.nombre}". ¿Quisiste decir alguno de estos?`,
+            { reply_markup: teclado },
+          )
+        }
       } else if (clientes.length === 1) {
         await enviarFichaCliente(ctx, usuario, clientes[0].id)
       } else {
