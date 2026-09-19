@@ -3,30 +3,6 @@ import { supabase } from '@/lib/supabase'
 import { desdePeriodo } from './insights-datos'
 import { armarBarras, type Rango } from './rangos'
 
-export function useConteos() {
-  return useQuery({
-    queryKey: ['conteos'],
-    queryFn: async () => {
-      const [clientes, vehiculos, enTaller] = await Promise.all([
-        supabase.from('clientes').select('*', { count: 'exact', head: true }),
-        supabase.from('vehiculos').select('*', { count: 'exact', head: true }),
-        supabase
-          .from('servicios')
-          .select('*', { count: 'exact', head: true })
-          .eq('estado', 'en_taller'),
-      ])
-      if (clientes.error) throw clientes.error
-      if (vehiculos.error) throw vehiculos.error
-      if (enTaller.error) throw enTaller.error
-      return {
-        clientes: clientes.count ?? 0,
-        vehiculos: vehiculos.count ?? 0,
-        enTaller: enTaller.count ?? 0,
-      }
-    },
-  })
-}
-
 // Cantidad de registros creados por período. Se traen solo las fechas y se
 // agrupan en el navegador. Ojo: PostgREST devuelve como máximo 1000 filas por
 // consulta; si un taller supera eso en un año, conviene pasar esto a una
