@@ -3,11 +3,31 @@ import { cn } from 'cn'
 import { AlertDialog as AlertDialogPrimitive } from 'radix-ui'
 
 import { Button } from '@/components/ui/button'
+import { useAtrasCierraCartel } from '@/hooks/use-atras-cierra-cartel'
 
+// Maneja su propio estado abierto/cerrado (si no lo controla el que lo usa) para
+// que el "atrás" del celular cierre el cartel (ver useAtrasCierraCartel).
 function AlertDialog({
+  open,
+  onOpenChange,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
-  return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />
+  const [interno, setInterno] = React.useState(false)
+  const abierto = open ?? interno
+  const cambiar = (nuevo: boolean) => {
+    if (open === undefined) setInterno(nuevo)
+    onOpenChange?.(nuevo)
+  }
+  useAtrasCierraCartel(abierto, cambiar)
+
+  return (
+    <AlertDialogPrimitive.Root
+      data-slot="alert-dialog"
+      open={abierto}
+      onOpenChange={cambiar}
+      {...props}
+    />
+  )
 }
 
 function AlertDialogTrigger({

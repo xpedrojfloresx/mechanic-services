@@ -123,7 +123,9 @@ function ServiciosDelVehiculo(props: {
           <AgregarServiciosForm
             key={ingreso.id}
             servicioId={ingreso.id}
-            onGuardado={() => navigate(`/servicios/${ingreso.id}`)}
+            onGuardado={() =>
+              navigate(`/servicios/${ingreso.id}`, { replace: true })
+            }
           />
         </>
       )}

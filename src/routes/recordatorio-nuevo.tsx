@@ -42,7 +42,7 @@ export function RecordatorioNuevoPage() {
           </Card>
           <RecordatorioForm
             vehiculoId={vehiculo.id}
-            onGuardado={() => navigate('/recordatorios')}
+            onGuardado={() => navigate('/recordatorios', { replace: true })}
           />
         </>
       ) : (
