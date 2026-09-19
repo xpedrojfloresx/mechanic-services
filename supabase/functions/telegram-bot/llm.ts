@@ -82,6 +82,50 @@ const herramientas = {
       nombre: z.string().describe('Nombre o parte del nombre del cliente.'),
     }),
   }),
+  recibir_vehiculo: tool({
+    description:
+      'Registrar el ingreso de un auto que llegó al taller (crea el cliente y el auto si son nuevos). Usar cuando dice que le trajeron o llegó un auto para arreglar. Pasá lo que haya dicho aunque falten datos: el sistema pregunta lo que falte. Pide confirmación antes de guardar.',
+    inputSchema: z.object({
+      cliente: z
+        .string()
+        .optional()
+        .describe('Nombre del cliente dueño del auto.'),
+      telefono: z
+        .string()
+        .optional()
+        .describe('Teléfono del cliente, si lo dice.'),
+      patente: z
+        .string()
+        .optional()
+        .describe(
+          'Patente, solo si la dice. Formato ABC123 o AB123CD, sin espacios.',
+        ),
+      marca: z.string().optional().describe('Marca del auto. Ej: Volkswagen.'),
+      modelo: z
+        .string()
+        .optional()
+        .describe(
+          'Modelo del auto con su versión o motor si lo dice. Ej: Golf 1.6.',
+        ),
+      anio: z.number().optional().describe('Año del auto, si lo dice.'),
+      km: z
+        .number()
+        .optional()
+        .describe('Kilómetros del auto como número (150000, no "150.000").'),
+      motivo: z
+        .string()
+        .optional()
+        .describe('Qué hay que hacerle al auto, corto. Ej: cambio de aceite.'),
+    }),
+  }),
+  crear_cliente: tool({
+    description:
+      'Cargar un cliente nuevo SIN auto. Si le trajeron un auto usá recibir_vehiculo. Pide confirmación antes de guardar.',
+    inputSchema: z.object({
+      nombre: z.string().describe('Nombre y apellido del cliente.'),
+      telefono: z.string().optional().describe('Teléfono, si lo dice.'),
+    }),
+  }),
   listar_clientes: tool({
     description:
       'Listar los clientes cargados, por orden alfabético, con el total. Usar cuando pide ver los clientes disponibles, cuántos clientes hay o los que empiezan con una letra.',
@@ -137,7 +181,8 @@ const herramientas = {
 const SISTEMA = `Sos el asistente por voz de un taller mecánico argentino. El mecánico te habla con las manos ocupadas: el texto viene de un audio transcripto y puede tener errores.
 Elegí la herramienta que corresponde a lo que pide.
 Los autos se nombran por la patente O por el cliente ("el auto de Juan", "la camioneta de Pérez"). NUNCA pidas la patente ni contestes que falta: si nombra al cliente, pasá el nombre del cliente (y el modelo si lo dice); si dicta una patente, pasala sin espacios y en mayúsculas ("a be uno dos tres ce de" es AB123CD). Las patentes tienen formato ABC123 o AB123CD.
-Si el pedido no corresponde a ninguna herramienta, no llames ninguna y contestá en una sola frase corta que podés: consultar un vehículo o su historial, qué hay en el taller, qué hay para entregar hoy, a quién avisar, la información de un cliente y la lista de clientes; marcar un auto como listo o entregado; y cargar repuestos o mano de obra a un auto que está en el taller.
+Si dice que le trajeron o llegó un auto para arreglar, usá recibir_vehiculo con lo que haya dicho (cliente, auto, kilómetros, qué hay que hacerle); NO pidas los datos que falten, el sistema los pregunta. Si solo quiere cargar un cliente sin auto, usá crear_cliente.
+Si el pedido no corresponde a ninguna herramienta, no llames ninguna y contestá en una sola frase corta que podés: consultar un vehículo o su historial, qué hay en el taller, qué hay para entregar hoy, a quién avisar, la información de un cliente y la lista de clientes; marcar un auto como listo o entregado; cargar repuestos o mano de obra a un auto que está en el taller; registrar un auto que llega (con su cliente) y cargar un cliente nuevo.
 Para marcar estados o cargar servicios llamá la herramienta: el sistema le pide confirmación al mecánico, vos no confirmes nada. Los precios son por unidad y en pesos: "cuarenta y cinco mil" es 45000. No inventes datos: si no dice un precio, omitilo.`
 
 type Auto = { patente: string; cliente: string; modelo: string }
@@ -160,6 +205,25 @@ export type Orden =
   | { tipo: 'recordatorios_para_avisar'; soloVencidos: boolean }
   | { tipo: 'buscar_cliente'; nombre: string }
   | { tipo: 'listar_clientes'; prefijo: string }
+  | {
+      tipo: 'recibir_vehiculo'
+      cliente: string
+      telefono: string
+      patente: string
+      marca: string
+      modelo: string
+      anio?: number
+      km?: number
+      motivo: string
+      clienteId?: string
+      crearNuevo?: boolean
+    }
+  | {
+      tipo: 'crear_cliente'
+      nombre: string
+      telefono: string
+      crearNuevo?: boolean
+    }
   | { tipo: 'ninguna'; respuesta: string }
 
 export type OrdenConAuto = Extract<
@@ -171,6 +235,11 @@ export type OrdenConAuto = Extract<
       | 'cambiar_estado'
       | 'agregar_servicios'
   }
+>
+
+export type OrdenAlta = Extract<
+  Orden,
+  { tipo: 'recibir_vehiculo' | 'crear_cliente' }
 >
 
 export async function interpretar(texto: string): Promise<Orden> {
@@ -225,6 +294,24 @@ export async function interpretar(texto: string): Promise<Orden> {
       }
     case 'buscar_cliente':
       return { tipo: 'buscar_cliente', nombre: String(datos.nombre ?? '') }
+    case 'recibir_vehiculo':
+      return {
+        tipo: 'recibir_vehiculo',
+        cliente: String(datos.cliente ?? ''),
+        telefono: String(datos.telefono ?? ''),
+        patente: String(datos.patente ?? ''),
+        marca: String(datos.marca ?? ''),
+        modelo: String(datos.modelo ?? ''),
+        anio: typeof datos.anio === 'number' ? datos.anio : undefined,
+        km: typeof datos.km === 'number' ? datos.km : undefined,
+        motivo: String(datos.motivo ?? ''),
+      }
+    case 'crear_cliente':
+      return {
+        tipo: 'crear_cliente',
+        nombre: String(datos.nombre ?? ''),
+        telefono: String(datos.telefono ?? ''),
+      }
     case 'listar_clientes':
       return { tipo: 'listar_clientes', prefijo: String(datos.prefijo ?? '') }
     default:

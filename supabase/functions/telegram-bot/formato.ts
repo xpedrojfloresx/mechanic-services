@@ -499,3 +499,103 @@ export function textoErrorResolver(
       return 'No pude encontrar el auto. Probá de nuevo.'
   }
 }
+
+export type PrepRecepcion = {
+  cliente: { nombre: string; telefono: string | null; nuevo: boolean }
+  vehiculo: {
+    patente: string
+    marca: string
+    modelo: string
+    anio: number | null
+    nuevo: boolean
+  }
+  km: number
+  motivo: string
+  telefono_ignorado?: boolean
+}
+
+export function textoConfirmarRecepcion(p: PrepRecepcion) {
+  const lineas = [
+    '¿Registrar este ingreso?',
+    `👤 ${p.cliente.nombre}${p.cliente.nuevo ? ' (cliente nuevo)' : ''}${p.cliente.telefono ? ` · ${p.cliente.telefono}` : ''}`,
+    `🚗 ${p.vehiculo.marca} ${p.vehiculo.modelo} · ${p.vehiculo.patente}${p.vehiculo.anio ? ` · ${p.vehiculo.anio}` : ''}${p.vehiculo.nuevo ? ' (auto nuevo)' : ''}`,
+    `📍 ${numero.format(p.km)} km`,
+    `🔧 Motivo: ${p.motivo}`,
+  ]
+  if (p.telefono_ignorado) {
+    lineas.push(
+      '⚠️ El teléfono no tenía un formato válido: lo dejé sin cargar.',
+    )
+  }
+  lineas.push('(Vence en 10 minutos)')
+  return lineas.join('\n')
+}
+
+export function textoConfirmarCliente(p: {
+  nombre: string
+  telefono: string | null
+  telefono_ignorado?: boolean
+}) {
+  const lineas = [
+    '¿Cargar este cliente nuevo?',
+    `👤 ${p.nombre}${p.telefono ? ` · ${p.telefono}` : ' (sin teléfono)'}`,
+  ]
+  if (p.telefono_ignorado) {
+    lineas.push(
+      '⚠️ El teléfono no tenía un formato válido: lo dejé sin cargar.',
+    )
+  }
+  lineas.push('(Vence en 10 minutos)')
+  return lineas.join('\n')
+}
+
+// Qué se le pregunta al mecánico cuando falta un dato.
+export function textoPreguntaFaltante(campo: string) {
+  switch (campo) {
+    case 'patente':
+      return '¿Cuál es la patente del auto? (por ejemplo AB123CD)'
+    case 'km':
+      return '¿Cuántos kilómetros tiene?'
+    case 'motivo':
+      return '¿Qué hay que hacerle? (el motivo del ingreso)'
+    case 'marca_modelo':
+      return '¿Qué marca y modelo es? (por ejemplo: Volkswagen Golf)'
+    case 'cliente':
+      return '¿Cómo se llama el cliente?'
+    default:
+      return 'Me falta un dato. ¿Me lo repetís?'
+  }
+}
+
+type ConfirmacionAlta = {
+  ok?: boolean
+  error?: string
+  tipo?: string
+  nombre?: string
+  cliente?: string
+  cliente_nuevo?: boolean
+  patente?: string
+  marca?: string
+  modelo?: string
+}
+
+// Resultado de crear un cliente o recibir un auto; null si no es de ese tipo.
+export function textoResultadoAlta(r: ConfirmacionAlta): string | null {
+  if (r.ok && r.tipo === 'crear_cliente') {
+    return `✅ Listo: cargué a ${r.nombre} como cliente nuevo.`
+  }
+  if (r.ok && r.tipo === 'recibir_vehiculo') {
+    return `✅ Listo: registré el ingreso del ${r.marca} ${r.modelo} ${r.patente} de ${r.cliente}${r.cliente_nuevo ? ' (cliente nuevo)' : ''}. Ya podés cargarle repuestos o mano de obra.`
+  }
+  switch (r.error) {
+    case 'patente_repetida':
+      return 'Esa patente ya se cargó mientras tanto. No creé nada; pedímelo de nuevo.'
+    case 'ya_en_taller':
+      return 'Ese auto ya tiene un ingreso abierto en el taller. No hice nada.'
+    case 'cliente_ajeno':
+    case 'vehiculo_ajeno':
+      return 'Los datos cambiaron mientras tanto. No hice nada; pedímelo de nuevo.'
+    default:
+      return null
+  }
+}

@@ -12,7 +12,9 @@ import { entorno, rpc } from './datos.ts'
 import {
   etiquetaCandidato,
   textoCliente,
+  textoConfirmarCliente,
   textoConfirmarEstado,
+  textoConfirmarRecepcion,
   textoConfirmarServicios,
   textoEntregasDeHoy,
   textoErrorPreparar,
@@ -22,8 +24,10 @@ import {
   textoListaClientes,
   textoParaAvisar,
   textoPreguntaClientes,
+  textoPreguntaFaltante,
   textoPreguntaVehiculo,
   textoResultado,
+  textoResultadoAlta,
   textoVehiculo,
   type Candidato,
   type ClienteCandidato,
@@ -35,7 +39,7 @@ import {
   type ParaAvisar,
   type Preparacion,
 } from './formato.ts'
-import { interpretar, type OrdenConAuto } from './llm.ts'
+import { interpretar, type OrdenAlta, type OrdenConAuto } from './llm.ts'
 import { esPatenteValida, normalizarPatente } from './patente.ts'
 
 const token = entorno('TELEGRAM_BOT_TOKEN')
@@ -152,9 +156,17 @@ type Resolucion = {
 }
 
 // La pregunta pendiente: la orden original y las opciones entre las que elegir.
-type Aclaracion =
+type AclaracionOpciones =
   | { tipo: 'vehiculos'; orden: OrdenConAuto; candidatos: Candidato[] }
-  | { tipo: 'clientes'; orden: OrdenConAuto; candidatos: ClienteCandidato[] }
+  | {
+      tipo: 'clientes'
+      orden: OrdenConAuto | OrdenAlta
+      candidatos: ClienteCandidato[]
+    }
+// O falta un dato de un alta (patente, km...): la respuesta lo completa.
+type Aclaracion =
+  | AclaracionOpciones
+  | { tipo: 'faltante'; orden: OrdenAlta; candidatos: { campo: string }[] }
 
 const sinAcentos = (t: string) =>
   t
@@ -168,7 +180,7 @@ const palabras = (t: string) =>
     .filter((p) => p.length >= 3)
 
 // Qué opciones coinciden con lo que contestó el mecánico (por voz o texto).
-function elegirCandidato(texto: string, pendiente: Aclaracion) {
+function elegirCandidato(texto: string, pendiente: AclaracionOpciones) {
   if (pendiente.tipo === 'vehiculos') {
     const patente = normalizarPatente(texto)
     const porPatente = pendiente.candidatos.filter((c) =>
@@ -192,7 +204,7 @@ function elegirCandidato(texto: string, pendiente: Aclaracion) {
 async function preguntar(
   ctx: Ctx,
   usuario: number,
-  pendiente: Aclaracion,
+  pendiente: AclaracionOpciones,
   textoClientes?: string,
 ) {
   await rpc('bot_guardar_aclaracion', {
@@ -220,6 +232,12 @@ async function preguntar(
       teclado
         .text(`${c.nombre}${c.telefono ? ` · ${c.telefono}` : ''}`, `k:${c.id}`)
         .row()
+    }
+    if (
+      pendiente.orden.tipo === 'recibir_vehiculo' ||
+      pendiente.orden.tipo === 'crear_cliente'
+    ) {
+      teclado.text('➕ Es un cliente nuevo', 'n:1').row()
     }
     await ctx.reply(
       textoClientes ?? textoPreguntaClientes(pendiente.candidatos.length),
@@ -356,15 +374,180 @@ async function resolverVehiculo(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Dar de alta: recibir un auto (con su cliente) o crear un cliente
+// ---------------------------------------------------------------------------
+
+type Alta = {
+  accion_id?: string
+  falta?: string
+  tipo?: string
+  error?: string
+  clientes?: ClienteCandidato[]
+  nombre?: string
+  patente?: string
+  marca?: string
+  modelo?: string
+}
+
+// Pregunta un dato que falta (queda guardado 5 minutos; la próxima respuesta
+// del mecánico, por voz o texto, lo completa).
+async function preguntarFaltante(
+  ctx: Ctx,
+  usuario: number,
+  orden: OrdenAlta,
+  campo: string,
+  prefijo = '',
+) {
+  await rpc('bot_guardar_aclaracion', {
+    p_telegram_user_id: usuario,
+    p_tipo: 'faltante',
+    p_orden: orden,
+    p_candidatos: [{ campo }],
+  })
+  await ctx.reply(prefijo + textoPreguntaFaltante(campo), {
+    reply_markup: new InlineKeyboard().text('✖️ Cancelar', 'x:1'),
+  })
+}
+
+// Completa la orden con la respuesta del mecánico; null si no se entendió.
+function aplicarRespuesta(orden: OrdenAlta, campo: string, texto: string) {
+  const t = texto.trim()
+  if (campo === 'cliente') {
+    if (!t || t.length > 80) return null
+    return orden.tipo === 'crear_cliente'
+      ? { ...orden, nombre: t }
+      : { ...orden, cliente: t }
+  }
+  if (orden.tipo !== 'recibir_vehiculo') return null
+  if (campo === 'patente') {
+    const m = t.match(
+      /[A-Za-z]{2}\s*-?\s*\d{3}\s*-?\s*[A-Za-z]{2}|[A-Za-z]{3}\s*-?\s*\d{3}/,
+    )
+    const patente = normalizarPatente(m ? m[0] : t)
+    return esPatenteValida(patente) ? { ...orden, patente } : null
+  }
+  if (campo === 'km') {
+    const m = t.match(/\d[\d.,\s]*/)
+    if (!m) return null
+    let km = parseInt(m[0].replace(/\D/g, ''), 10)
+    if (/\bmil\b/i.test(t) && km < 1000) km *= 1000
+    return km >= 0 && km <= 3000000 ? { ...orden, km } : null
+  }
+  if (campo === 'motivo') {
+    return t && t.length <= 200 ? { ...orden, motivo: t } : null
+  }
+  if (campo === 'marca_modelo') {
+    const [marca, ...resto] = t.split(/\s+/)
+    return marca && resto.length > 0
+      ? { ...orden, marca, modelo: resto.join(' ') }
+      : null
+  }
+  return null
+}
+
+// Prepara el alta: pregunta lo que falte o pide confirmar con botones. Recién
+// al confirmar se crea todo junto (cliente, auto e ingreso), o nada.
+async function prepararAlta(ctx: Ctx, usuario: number, orden: OrdenAlta) {
+  const r =
+    orden.tipo === 'crear_cliente'
+      ? await rpc<Alta>('bot_preparar_cliente', {
+          p_telegram_user_id: usuario,
+          p_nombre: orden.nombre || null,
+          p_telefono: orden.telefono || null,
+          p_crear_nuevo: !!orden.crearNuevo,
+        })
+      : await rpc<Alta>('bot_preparar_recepcion', {
+          p_telegram_user_id: usuario,
+          p_cliente: orden.cliente || null,
+          p_cliente_id: orden.clienteId ?? null,
+          p_crear_nuevo: !!orden.crearNuevo,
+          p_telefono: orden.telefono || null,
+          p_patente: orden.patente || null,
+          p_marca: orden.marca || null,
+          p_modelo: orden.modelo || null,
+          p_anio: orden.anio != null ? Math.round(orden.anio) : null,
+          p_km: orden.km != null ? Math.round(orden.km) : null,
+          p_motivo: orden.motivo || null,
+        })
+  if (r.falta) {
+    await preguntarFaltante(ctx, usuario, orden, r.falta)
+    return
+  }
+  if (r.tipo === 'clientes_parecidos' && r.clientes) {
+    const nombre = orden.tipo === 'crear_cliente' ? orden.nombre : orden.cliente
+    await preguntar(
+      ctx,
+      usuario,
+      { tipo: 'clientes', orden, candidatos: r.clientes },
+      `Ya hay clientes iguales o parecidos a "${nombre}". ¿Es alguno de estos o es un cliente nuevo? Tocá un botón (o escribí "nuevo").`,
+    )
+    return
+  }
+  if (r.error === 'ya_existe') {
+    await ctx.reply(`Ya tenés cargado a ${r.nombre}.`)
+    return
+  }
+  if (r.error === 'patente_invalida' && orden.tipo === 'recibir_vehiculo') {
+    await preguntarFaltante(
+      ctx,
+      usuario,
+      { ...orden, patente: '' },
+      'patente',
+      'No entendí bien esa patente. ',
+    )
+    return
+  }
+  if (r.error === 'motivo_largo' && orden.tipo === 'recibir_vehiculo') {
+    await preguntarFaltante(
+      ctx,
+      usuario,
+      { ...orden, motivo: '' },
+      'motivo',
+      'Es muy largo. ',
+    )
+    return
+  }
+  if (r.error === 'ya_en_taller') {
+    await ctx.reply(
+      `El ${r.marca} ${r.modelo} ${r.patente} ya tiene un ingreso abierto en el taller. Si querés cargarle algo, decime qué le hiciste.`,
+    )
+    return
+  }
+  if (r.error || !r.accion_id) {
+    await ctx.reply('No pude prepararlo. Probá de nuevo.')
+    return
+  }
+  const teclado = new InlineKeyboard()
+    .text('✅ Confirmar', `a:ok:${r.accion_id}`)
+    .text('✖️ Cancelar', `a:no:${r.accion_id}`)
+  await ctx.reply(
+    orden.tipo === 'crear_cliente'
+      ? textoConfirmarCliente(r as never)
+      : textoConfirmarRecepcion(r as never),
+    { reply_markup: teclado },
+  )
+}
+
 // El mecánico eligió una opción de la pregunta (con un botón o contestando).
 async function continuarAclaracion(
   ctx: Ctx,
   usuario: number,
-  pendiente: Aclaracion,
+  pendiente: AclaracionOpciones,
   elegido: Candidato | ClienteCandidato,
 ) {
   if (pendiente.tipo === 'clientes') {
-    await resolverVehiculo(ctx, usuario, pendiente.orden, elegido.id)
+    if (pendiente.orden.tipo === 'recibir_vehiculo') {
+      await prepararAlta(ctx, usuario, {
+        ...pendiente.orden,
+        clienteId: elegido.id,
+      })
+    } else if (pendiente.orden.tipo === 'crear_cliente') {
+      await ctx.reply('Ese cliente ya está cargado:')
+      await enviarFichaCliente(ctx, usuario, elegido.id)
+    } else {
+      await resolverVehiculo(ctx, usuario, pendiente.orden, elegido.id)
+    }
   } else {
     await ejecutarConPatente(
       ctx,
@@ -388,7 +571,47 @@ async function atender(ctx: Ctx, texto: string) {
     const pendiente = await rpc<Aclaracion | null>('bot_leer_aclaracion', {
       p_telegram_user_id: usuario,
     })
-    if (pendiente) {
+    if (pendiente && pendiente.tipo === 'faltante') {
+      // Está contestando un dato que faltaba (patente, km, motivo...).
+      if (/^(cancel|olvid|deja|no importa)/.test(sinAcentos(texto.trim()))) {
+        await rpc('bot_borrar_aclaracion', { p_telegram_user_id: usuario })
+        await ctx.reply('Listo, lo cancelé. No hice nada.')
+        return
+      }
+      const campo = pendiente.candidatos[0]?.campo ?? ''
+      const nueva = aplicarRespuesta(pendiente.orden, campo, texto)
+      if (!nueva) {
+        await preguntarFaltante(
+          ctx,
+          usuario,
+          pendiente.orden,
+          campo,
+          'No lo entendí. ',
+        )
+        await registrar(usuario, texto, 'faltante', 'repregunta')
+        return
+      }
+      await rpc('bot_borrar_aclaracion', { p_telegram_user_id: usuario })
+      await prepararAlta(ctx, usuario, nueva)
+      await registrar(usuario, texto, `alta_${campo}`, 'ok')
+      return
+    }
+    if (pendiente && pendiente.tipo !== 'faltante') {
+      if (
+        pendiente.tipo === 'clientes' &&
+        (pendiente.orden.tipo === 'recibir_vehiculo' ||
+          pendiente.orden.tipo === 'crear_cliente') &&
+        /\bnuev[oa]\b/.test(sinAcentos(texto))
+      ) {
+        // "es nuevo": se crea un cliente aunque haya parecidos.
+        await rpc('bot_borrar_aclaracion', { p_telegram_user_id: usuario })
+        await prepararAlta(ctx, usuario, {
+          ...pendiente.orden,
+          crearNuevo: true,
+        })
+        await registrar(usuario, texto, 'aclaracion', 'cliente nuevo')
+        return
+      }
       const elegidos = elegirCandidato(texto, pendiente)
       if (elegidos.length === 1) {
         await rpc('bot_borrar_aclaracion', { p_telegram_user_id: usuario })
@@ -404,10 +627,22 @@ async function atender(ctx: Ctx, texto: string) {
       ) {
         // Está corrigiendo el nombre: se busca con lo que escribió.
         await rpc('bot_borrar_aclaracion', { p_telegram_user_id: usuario })
-        await resolverVehiculo(ctx, usuario, {
-          ...pendiente.orden,
-          cliente: texto.trim(),
-        })
+        if (pendiente.orden.tipo === 'crear_cliente') {
+          await prepararAlta(ctx, usuario, {
+            ...pendiente.orden,
+            nombre: texto.trim(),
+          })
+        } else if (pendiente.orden.tipo === 'recibir_vehiculo') {
+          await prepararAlta(ctx, usuario, {
+            ...pendiente.orden,
+            cliente: texto.trim(),
+          })
+        } else {
+          await resolverVehiculo(ctx, usuario, {
+            ...pendiente.orden,
+            cliente: texto.trim(),
+          })
+        }
         await registrar(usuario, texto, 'aclaracion', 'nombre corregido')
         return
       }
@@ -438,6 +673,11 @@ async function atender(ctx: Ctx, texto: string) {
       orden.tipo === 'agregar_servicios'
     ) {
       await resolverVehiculo(ctx, usuario, orden)
+    } else if (
+      orden.tipo === 'recibir_vehiculo' ||
+      orden.tipo === 'crear_cliente'
+    ) {
+      await prepararAlta(ctx, usuario, orden)
     } else if (orden.tipo === 'estado_del_taller') {
       const filas = await rpc<Parameters<typeof textoEstadoTaller>[0]>(
         'bot_estado_taller',
@@ -561,6 +801,8 @@ const AYUDA = [
   'CAMBIOS (siempre te pido confirmar con un botón)',
   '✅ "El auto de Juan está listo" / "ya se entregó el Fiat de María"',
   '➕ "Al auto de Juan cargale pastillas de freno, dos a veinte mil, y mano de obra doce mil"',
+  '🆕 "Me trajeron un auto: la cliente es Morena Magrini, un Golf 1.6 con 150.000 km, cambio de aceite" (te pregunto lo que falte, como la patente)',
+  '🧑 "Cargá un cliente nuevo: Juan Pérez, 351 555 1234"',
   '',
   'Si el cliente tiene más de un auto te pregunto cuál (el modelo, o la patente si son iguales). Para cargar servicios el auto tiene que estar recibido en el taller.',
 ].join('\n')
@@ -659,6 +901,50 @@ bot.callbackQuery(/^([vk]):([0-9a-f-]{36})$/, async (ctx) => {
   }
 })
 
+// "Es un cliente nuevo" (cuando había clientes iguales o parecidos).
+bot.callbackQuery(/^n:1$/, async (ctx) => {
+  await ctx.answerCallbackQuery()
+  const usuario = ctx.from.id
+  try {
+    const pendiente = await rpc<Aclaracion | null>('bot_leer_aclaracion', {
+      p_telegram_user_id: usuario,
+    })
+    if (
+      !pendiente ||
+      pendiente.tipo !== 'clientes' ||
+      (pendiente.orden.tipo !== 'recibir_vehiculo' &&
+        pendiente.orden.tipo !== 'crear_cliente')
+    ) {
+      await ctx.reply('Esa pregunta ya venció. Pedímelo de nuevo.')
+      return
+    }
+    await ctx
+      .editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } })
+      .catch(() => {})
+    await rpc('bot_borrar_aclaracion', { p_telegram_user_id: usuario })
+    await prepararAlta(ctx, usuario, { ...pendiente.orden, crearNuevo: true })
+    await registrar(usuario, '(botón) cliente nuevo', 'aclaracion', 'ok')
+  } catch (error) {
+    console.error('Error al crear el cliente nuevo:', error)
+    await ctx.reply('No pude resolverlo. Probá de nuevo.')
+  }
+})
+
+// Cancelar una pregunta pendiente (por ejemplo "¿cuál es la patente?").
+bot.callbackQuery(/^x:1$/, async (ctx) => {
+  await ctx.answerCallbackQuery()
+  try {
+    await ctx
+      .editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } })
+      .catch(() => {})
+    await rpc('bot_borrar_aclaracion', { p_telegram_user_id: ctx.from.id })
+    await ctx.reply('Listo, lo cancelé. No hice nada.')
+  } catch (error) {
+    console.error('Error al cancelar la pregunta:', error)
+    await ctx.reply('No pude resolverlo. Probá de nuevo.')
+  }
+})
+
 // Botones Confirmar / Cancelar de una acción que modifica datos. Recién acá se
 // ejecuta (en la base, una sola vez); el modelo de IA no interviene.
 bot.callbackQuery(/^a:(ok|no):([0-9a-f-]{36})$/, async (ctx) => {
@@ -691,7 +977,9 @@ bot.callbackQuery(/^a:(ok|no):([0-9a-f-]{36})$/, async (ctx) => {
         p_telegram_user_id: usuario,
         p_accion_id: accion,
       })
-      await ctx.reply(textoResultado(resultado))
+      await ctx.reply(
+        textoResultadoAlta(resultado) ?? textoResultado(resultado),
+      )
       await registrar(
         usuario,
         `(botón) confirmar ${accion}`,
