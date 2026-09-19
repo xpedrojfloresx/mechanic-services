@@ -333,3 +333,106 @@ export function textoListaClientes(datos: ListaClientes, prefijo: string) {
   }
   return `${titulo}\n${lineas.join('\n')}`
 }
+
+export type Preparacion = {
+  accion_id: string
+  patente: string
+  marca: string
+  modelo: string
+  cliente: string | null
+  estado_actual?: string
+  estado_nuevo?: string
+  items?: {
+    tipo: string
+    descripcion: string
+    cantidad: number
+    precio: number | null
+  }[]
+  total?: number
+}
+
+const tiposItem: Record<string, string> = {
+  repuesto: 'repuesto',
+  mano_de_obra: 'mano de obra',
+}
+
+// Texto que se muestra ANTES de ejecutar, armado con lo que encontró la base.
+export function textoConfirmarEstado(p: Preparacion) {
+  const auto = `${p.marca} ${p.modelo} ${p.patente}${p.cliente ? ` de ${p.cliente}` : ''}`
+  return [
+    `¿Marcar como ${(estados[p.estado_nuevo ?? ''] ?? '').toUpperCase()} el ${auto}?`,
+    `Ahora figura: ${estados[p.estado_actual ?? ''] ?? p.estado_actual}.`,
+    '(Vence en 10 minutos)',
+  ].join('\n')
+}
+
+export function textoConfirmarServicios(p: Preparacion) {
+  const auto = `${p.marca} ${p.modelo} ${p.patente}${p.cliente ? ` (de ${p.cliente})` : ''}`
+  const lineas = [`¿Cargar esto al ${auto}?`]
+  for (const i of p.items ?? []) {
+    const cant =
+      Number(i.cantidad) !== 1 ? ` x${numero.format(Number(i.cantidad))}` : ''
+    const precio =
+      i.precio != null
+        ? ` · ${pesos(Number(i.cantidad) * Number(i.precio))}`
+        : ' · sin precio'
+    lineas.push(
+      `• ${i.descripcion}${cant} (${tiposItem[i.tipo] ?? i.tipo})${precio}`,
+    )
+  }
+  if (Number(p.total) > 0) lineas.push(`Total: ${pesos(Number(p.total))}`)
+  lineas.push('(Vence en 10 minutos)')
+  return lineas.join('\n')
+}
+
+export type Confirmacion = {
+  ok?: boolean
+  error?: string
+  tipo?: string
+  patente?: string
+  marca?: string
+  modelo?: string
+  estado_nuevo?: string
+  cantidad?: number
+  total?: number
+}
+
+const erroresAccion: Record<string, string> = {
+  vencida: 'Pasaron más de 10 minutos. Pedímelo de nuevo.',
+  ya_procesada: 'Esa acción ya se procesó.',
+  no_existe: 'No encontré esa acción.',
+  ya_no_esta_abierto:
+    'Ese ingreso ya no está abierto (cambió mientras tanto). No hice nada.',
+}
+
+export function textoResultado(r: Confirmacion) {
+  if (!r.ok)
+    return erroresAccion[r.error ?? ''] ?? 'No pude hacerlo. Probá de nuevo.'
+  const auto = `${r.marca} ${r.modelo} ${r.patente}`
+  if (r.tipo === 'cambiar_estado') {
+    return `✅ Listo: el ${auto} quedó como ${(estados[r.estado_nuevo ?? ''] ?? '').toUpperCase()}.`
+  }
+  const renglones = r.cantidad === 1 ? '1 renglón' : `${r.cantidad} renglones`
+  const total = Number(r.total) > 0 ? ` (total ${pesos(Number(r.total))})` : ''
+  return `✅ Cargué ${renglones} al ${auto}${total}.`
+}
+
+// Errores al PREPARAR (antes de pedir confirmación).
+export function textoErrorPreparar(
+  error: string,
+  patente: string,
+  estado?: string,
+) {
+  switch (error) {
+    case 'no_existe':
+      return `No encontré la patente ${patente} en el taller.`
+    case 'no_esta_en_taller':
+      return `La patente ${patente} no tiene un ingreso abierto en el taller. Para cargarle cosas primero hay que recibirlo en la app.`
+    case 'ya_esta':
+      return `Ya figura como ${(estados[estado ?? ''] ?? estado ?? '').toUpperCase()}. No hice nada.`
+    case 'items_invalidos':
+      return 'No entendí bien los datos (tipo, descripción o precio). Decímelo de nuevo, por favor.'
+    default:
+      return 'No pude prepararlo. Probá de nuevo.'
+  }
+}

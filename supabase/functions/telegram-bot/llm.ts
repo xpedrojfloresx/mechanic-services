@@ -63,6 +63,46 @@ const herramientas = {
       nombre: z.string().describe('Nombre o parte del nombre del cliente.'),
     }),
   }),
+  cambiar_estado: tool({
+    description:
+      'Marcar un vehículo como listo para entregar o como entregado. Usar cuando el mecánico dice que un auto está listo o que ya se entregó. Pide confirmación antes de hacerlo.',
+    inputSchema: z.object({
+      patente,
+      estado: z
+        .enum(['listo', 'entregado'])
+        .describe(
+          'listo = terminado, esperando que lo retiren; entregado = ya se lo llevó.',
+        ),
+    }),
+  }),
+  agregar_servicios: tool({
+    description:
+      'Cargar repuestos y/o mano de obra a un vehículo que está en el taller. Usar cuando el mecánico dice qué le hizo o qué le puso al auto. Pide confirmación antes de guardar.',
+    inputSchema: z.object({
+      patente,
+      renglones: z
+        .array(
+          z.object({
+            tipo: z
+              .enum(['repuesto', 'mano_de_obra'])
+              .describe(
+                'repuesto = una pieza o material (pastillas, filtro, aceite, correa); mano_de_obra = una tarea (cambio, colocación, alineación, balanceo).',
+              ),
+            descripcion: z
+              .string()
+              .describe('Qué es, corto. Ej: Pastillas de freno.'),
+            cantidad: z.number().optional().describe('Cantidad; 1 si no dice.'),
+            precio: z
+              .number()
+              .optional()
+              .describe(
+                'Precio POR UNIDAD en pesos, como número (45000, no "45 mil"). Omitir si no lo dice.',
+              ),
+          }),
+        )
+        .describe('Uno por cada cosa que menciona (máximo 5).'),
+    }),
+  }),
   listar_clientes: tool({
     description:
       'Listar los clientes cargados, por orden alfabético. Usar cuando pide ver los clientes disponibles o los que empiezan con una letra.',
@@ -77,8 +117,8 @@ const herramientas = {
 
 const SISTEMA = `Sos el asistente por voz de un taller mecánico argentino. El mecánico te habla con las manos ocupadas: el texto viene de un audio transcripto y puede tener errores.
 Elegí la herramienta que corresponde a lo que pide. Las patentes tienen formato ABC123 o AB123CD; si las deletrean ("a be uno dos tres") armalas sin espacios y en mayúsculas.
-Si el pedido no corresponde a ninguna herramienta, no llames ninguna y contestá en una sola frase corta que por ahora solo podés consultar: un vehículo por patente o su historial, qué hay en el taller, qué hay para entregar hoy, a quién avisar, la información de un cliente y la lista de clientes.
-No inventes datos.`
+Si el pedido no corresponde a ninguna herramienta, no llames ninguna y contestá en una sola frase corta que podés: consultar un vehículo por patente o su historial, qué hay en el taller, qué hay para entregar hoy, a quién avisar, la información de un cliente y la lista de clientes; marcar un auto como listo o entregado; y cargar repuestos o mano de obra a un auto que está en el taller.
+Para marcar estados o cargar servicios llamá la herramienta: el sistema le pide confirmación al mecánico, vos no confirmes nada. Los precios son por unidad y en pesos: "cuarenta y cinco mil" es 45000. No inventes datos: si no dice un precio, omitilo.`
 
 export type Orden =
   | { tipo: 'buscar_vehiculo'; patente: string }
@@ -88,6 +128,17 @@ export type Orden =
   | { tipo: 'recordatorios_para_avisar'; soloVencidos: boolean }
   | { tipo: 'buscar_cliente'; nombre: string }
   | { tipo: 'listar_clientes'; prefijo: string }
+  | { tipo: 'cambiar_estado'; patente: string; estado: string }
+  | {
+      tipo: 'agregar_servicios'
+      patente: string
+      renglones: {
+        tipo: string
+        descripcion: string
+        cantidad?: number
+        precio?: number
+      }[]
+    }
   | { tipo: 'ninguna'; respuesta: string }
 
 export async function interpretar(texto: string): Promise<Orden> {
@@ -128,6 +179,18 @@ export async function interpretar(texto: string): Promise<Orden> {
       }
     case 'buscar_cliente':
       return { tipo: 'buscar_cliente', nombre: String(datos.nombre ?? '') }
+    case 'cambiar_estado':
+      return {
+        tipo: 'cambiar_estado',
+        patente: String(datos.patente ?? ''),
+        estado: String(datos.estado ?? ''),
+      }
+    case 'agregar_servicios':
+      return {
+        tipo: 'agregar_servicios',
+        patente: String(datos.patente ?? ''),
+        renglones: Array.isArray(datos.renglones) ? datos.renglones : [],
+      }
     case 'listar_clientes':
       return { tipo: 'listar_clientes', prefijo: String(datos.prefijo ?? '') }
     default:

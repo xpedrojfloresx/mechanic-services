@@ -1,24 +1,31 @@
-// Bot de Telegram por voz, etapa 2a: el mecánico manda una nota de voz o un
-// texto y el bot BUSCA información en la app (solo lectura): un vehículo por
-// patente o su historial, lo que hay en el taller, qué entregar hoy, a quién
-// avisar y la información de los clientes. Todavía no modifica nada. Diseño completo en context.md §15. Corre en una Edge Function
-// de Supabase (Deno), con webhook; los secretos se cargan con
+// Bot de Telegram por voz. El mecánico manda una nota de voz o un texto y el
+// bot (a) CONSULTA la app: un vehículo o su historial, lo que hay en el taller,
+// qué entregar hoy, a quién avisar y la información de los clientes; y (b)
+// MODIFICA solo con confirmación: marcar un auto como listo/entregado y cargarle
+// repuestos o mano de obra. Diseño completo en context.md §15. Corre en una
+// Edge Function de Supabase (Deno), con webhook; los secretos se cargan con
 // `supabase secrets set`.
 import { Bot, InlineKeyboard, webhookCallback } from 'npm:grammy'
 import { entorno, rpc } from './datos.ts'
 import {
   textoCliente,
+  textoConfirmarEstado,
+  textoConfirmarServicios,
   textoEntregasDeHoy,
+  textoErrorPreparar,
   textoEstadoTaller,
   textoHistorial,
   textoListaClientes,
   textoParaAvisar,
+  textoResultado,
   textoVehiculo,
+  type Confirmacion,
   type FichaCliente,
   type FichaVehiculo,
   type Historial,
   type ListaClientes,
   type ParaAvisar,
+  type Preparacion,
 } from './formato.ts'
 import { interpretar } from './llm.ts'
 import { esPatenteValida, normalizarPatente } from './patente.ts'
@@ -219,10 +226,50 @@ async function atender(
           { reply_markup: teclado },
         )
       }
+    } else if (
+      orden.tipo === 'cambiar_estado' ||
+      orden.tipo === 'agregar_servicios'
+    ) {
+      const patente = normalizarPatente(orden.patente)
+      if (!esPatenteValida(patente)) {
+        await ctx.reply(
+          `No entendí bien la patente ("${orden.patente}"). Decímela de nuevo, por favor.`,
+        )
+      } else {
+        // Todavía no se modifica nada: se guarda la acción pendiente y se pide confirmar.
+        type Preparada = Preparacion & { error?: string; estado?: string }
+        const preparada =
+          orden.tipo === 'cambiar_estado'
+            ? await rpc<Preparada>('bot_preparar_cambio_estado', {
+                p_telegram_user_id: usuario,
+                p_patente: patente,
+                p_estado: orden.estado,
+              })
+            : await rpc<Preparada>('bot_preparar_servicios', {
+                p_telegram_user_id: usuario,
+                p_patente: patente,
+                p_items: orden.renglones,
+              })
+        if (preparada.error) {
+          await ctx.reply(
+            textoErrorPreparar(preparada.error, patente, preparada.estado),
+          )
+        } else {
+          const teclado = new InlineKeyboard()
+            .text('✅ Confirmar', `a:ok:${preparada.accion_id}`)
+            .text('✖️ Cancelar', `a:no:${preparada.accion_id}`)
+          await ctx.reply(
+            orden.tipo === 'cambiar_estado'
+              ? textoConfirmarEstado(preparada)
+              : textoConfirmarServicios(preparada),
+            { reply_markup: teclado },
+          )
+        }
+      }
     } else {
       await ctx.reply(
         orden.respuesta ||
-          'Por ahora solo puedo consultar. Mandame /ayuda para ver ejemplos.',
+          'No entendí qué querés hacer. Mandame /ayuda para ver ejemplos.',
       )
     }
     await registrar(usuario, texto, accion, 'ok')
@@ -255,8 +302,9 @@ async function enviarFichaCliente(
 }
 
 const AYUDA = [
-  'Mandame una nota de voz o un texto. Puedo consultar:',
+  'Mandame una nota de voz o un texto.',
   '',
+  'CONSULTAS',
   '🚗 "Buscá la patente AB123CD"',
   '🧾 "Qué le hicimos a la patente AB123CD" (historial)',
   '🔧 "Qué hay en el taller" / "cuáles están listos"',
@@ -265,7 +313,11 @@ const AYUDA = [
   '👤 "Qué datos tenés de Juan Pérez"',
   '📋 "Qué clientes tengo" / "clientes con G"',
   '',
-  'Por ahora solo consulto: todavía no modifico nada.',
+  'CAMBIOS (siempre te pido confirmar con un botón)',
+  '✅ "La patente AB123CD está lista" / "ya se entregó"',
+  '➕ "A la AB123CD cargale pastillas de freno, dos a veinte mil, y mano de obra doce mil"',
+  '',
+  'Para cargar servicios el auto tiene que estar recibido en el taller.',
 ].join('\n')
 
 bot.command('start', (ctx) => ctx.reply(AYUDA))
@@ -318,6 +370,62 @@ bot.callbackQuery(/^c:([0-9a-f-]{36})$/, async (ctx) => {
   } catch (error) {
     console.error('Error al mostrar la ficha:', error)
     await ctx.reply('No pude resolverlo. Probá de nuevo.')
+  }
+})
+
+// Botones Confirmar / Cancelar de una acción que modifica datos. Recién acá se
+// ejecuta (en la base, una sola vez); el modelo de IA no interviene.
+bot.callbackQuery(/^a:(ok|no):([0-9a-f-]{36})$/, async (ctx) => {
+  await ctx.answerCallbackQuery()
+  const usuario = ctx.from.id
+  const accion = ctx.match[2]
+  try {
+    // Se sacan los botones para que no se toquen dos veces.
+    await ctx
+      .editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } })
+      .catch(() => {})
+    if (ctx.match[1] === 'no') {
+      const cancelada = await rpc<boolean>('bot_cancelar', {
+        p_telegram_user_id: usuario,
+        p_accion_id: accion,
+      })
+      await ctx.reply(
+        cancelada
+          ? 'Cancelado. No hice nada.'
+          : 'Esa acción ya no estaba pendiente.',
+      )
+      await registrar(
+        usuario,
+        `(botón) cancelar ${accion}`,
+        'cancelar',
+        cancelada ? 'ok' : 'no estaba pendiente',
+      )
+    } else {
+      const resultado = await rpc<Confirmacion>('bot_confirmar', {
+        p_telegram_user_id: usuario,
+        p_accion_id: accion,
+      })
+      await ctx.reply(textoResultado(resultado))
+      await registrar(
+        usuario,
+        `(botón) confirmar ${accion}`,
+        resultado.tipo ?? 'confirmar',
+        resultado.ok ? 'ok' : `no: ${resultado.error}`,
+      )
+    }
+  } catch (error) {
+    console.error('Error al confirmar o cancelar:', error)
+    await registrar(
+      usuario,
+      `(botón) ${ctx.match[1]} ${accion}`,
+      'confirmar',
+      `error: ${String((error as Error)?.message ?? error)}`,
+    )
+    await ctx.reply(
+      esNoAutorizado(error)
+        ? 'Tu usuario de Telegram todavía no está vinculado a la app.'
+        : 'No pude resolverlo. Probá de nuevo.',
+    )
   }
 })
 
