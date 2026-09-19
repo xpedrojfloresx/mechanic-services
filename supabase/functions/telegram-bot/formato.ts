@@ -436,3 +436,66 @@ export function textoErrorPreparar(
       return 'No pude prepararlo. Probá de nuevo.'
   }
 }
+
+export type Candidato = {
+  id: string
+  patente: string
+  marca: string
+  modelo: string
+}
+
+export type ClienteCandidato = {
+  id: string
+  nombre: string
+  telefono: string | null
+}
+
+const mismoModelo = (a: Candidato, b: Candidato) =>
+  a.marca.toLowerCase() === b.marca.toLowerCase() &&
+  a.modelo.toLowerCase() === b.modelo.toLowerCase()
+
+// Cómo se muestra un auto al preguntar cuál: solo marca y modelo, y la patente
+// únicamente si hay otro del mismo modelo.
+export function etiquetaCandidato(c: Candidato, todos: Candidato[]) {
+  const repetido = todos.some((o) => o.id !== c.id && mismoModelo(o, c))
+  return `${c.marca} ${c.modelo}${repetido ? ` · ${c.patente}` : ''}`
+}
+
+export function textoPreguntaVehiculo(
+  cliente: string,
+  candidatos: Candidato[],
+) {
+  const iguales = candidatos.every((c) => mismoModelo(c, candidatos[0]))
+  const lista = candidatos.map((c) => `• ${etiquetaCandidato(c, candidatos)}`)
+  return [
+    `${cliente} tiene ${candidatos.length} autos:`,
+    ...lista,
+    iguales
+      ? '¿Cuál es la patente? (o tocá un botón)'
+      : '¿Cuál? Decime el modelo o tocá un botón.',
+  ].join('\n')
+}
+
+export function textoPreguntaClientes(cantidad: number) {
+  return `Encontré ${cantidad} clientes con ese nombre. ¿Cuál? Decime el nombre completo o tocá un botón.`
+}
+
+// Errores al buscar el auto por patente o por cliente.
+export function textoErrorResolver(
+  error: string,
+  cliente: string | undefined,
+  patente: string,
+) {
+  switch (error) {
+    case 'no_existe':
+      return `No encontré la patente ${patente} en el taller.`
+    case 'cliente_no_existe':
+      return 'No encontré ningún cliente con ese nombre.'
+    case 'sin_vehiculos':
+      return `${cliente ?? 'El cliente'} no tiene autos cargados.`
+    case 'no_esta_en_taller':
+      return `${cliente ?? 'El cliente'} no tiene ningún auto con un ingreso abierto en el taller. Para cargarle cosas primero hay que recibirlo en la app.`
+    default:
+      return 'No pude encontrar el auto. Probá de nuevo.'
+  }
+}

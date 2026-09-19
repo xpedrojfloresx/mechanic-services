@@ -1,24 +1,32 @@
 // Bot de Telegram por voz. El mecánico manda una nota de voz o un texto y el
 // bot (a) CONSULTA la app: un vehículo o su historial, lo que hay en el taller,
 // qué entregar hoy, a quién avisar y la información de los clientes; y (b)
-// MODIFICA solo con confirmación: marcar un auto como listo/entregado y cargarle
-// repuestos o mano de obra. Diseño completo en context.md §15. Corre en una
-// Edge Function de Supabase (Deno), con webhook; los secretos se cargan con
-// `supabase secrets set`.
+// MODIFICA solo con confirmación por botones: marcar un auto como listo o
+// entregado y cargarle repuestos o mano de obra. Los autos se nombran por la
+// patente o por el cliente ("el auto de Juan"); si hace falta, el bot pregunta
+// cuál (por modelo y, si son iguales, por patente). Diseño completo en
+// context.md §15. Corre en una Edge Function de Supabase (Deno), con webhook;
+// los secretos se cargan con `supabase secrets set`.
 import { Bot, InlineKeyboard, webhookCallback } from 'npm:grammy'
 import { entorno, rpc } from './datos.ts'
 import {
+  etiquetaCandidato,
   textoCliente,
   textoConfirmarEstado,
   textoConfirmarServicios,
   textoEntregasDeHoy,
   textoErrorPreparar,
+  textoErrorResolver,
   textoEstadoTaller,
   textoHistorial,
   textoListaClientes,
   textoParaAvisar,
+  textoPreguntaClientes,
+  textoPreguntaVehiculo,
   textoResultado,
   textoVehiculo,
+  type Candidato,
+  type ClienteCandidato,
   type Confirmacion,
   type FichaCliente,
   type FichaVehiculo,
@@ -27,7 +35,7 @@ import {
   type ParaAvisar,
   type Preparacion,
 } from './formato.ts'
-import { interpretar } from './llm.ts'
+import { interpretar, type OrdenConAuto } from './llm.ts'
 import { esPatenteValida, normalizarPatente } from './patente.ts'
 
 const token = entorno('TELEGRAM_BOT_TOKEN')
@@ -78,6 +86,7 @@ async function transcribir(audio: Blob) {
 }
 
 const bot = new Bot(token)
+type Ctx = Parameters<Parameters<typeof bot.on>[1]>[0]
 
 // Solo chats privados y usuarios de la lista; a los demás no se les responde.
 bot.use(async (ctx, next) => {
@@ -129,50 +138,269 @@ const esNoAutorizado = (error: unknown) =>
     'no_autorizado',
   )
 
-// Interpreta el texto (que puede venir de un audio) y responde.
-async function atender(
-  ctx: Parameters<Parameters<typeof bot.on>[1]>[0],
-  texto: string,
+// ---------------------------------------------------------------------------
+// Encontrar el auto: por patente o por el cliente, preguntando solo si hace falta
+// ---------------------------------------------------------------------------
+
+type Resolucion = {
+  tipo?: 'vehiculo' | 'clientes' | 'aclarar'
+  error?: string
+  patente?: string
+  cliente?: string
+  clientes?: ClienteCandidato[]
+  candidatos?: Candidato[]
+}
+
+// La pregunta pendiente: la orden original y las opciones entre las que elegir.
+type Aclaracion =
+  | { tipo: 'vehiculos'; orden: OrdenConAuto; candidatos: Candidato[] }
+  | { tipo: 'clientes'; orden: OrdenConAuto; candidatos: ClienteCandidato[] }
+
+const sinAcentos = (t: string) =>
+  t
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+
+const palabras = (t: string) =>
+  sinAcentos(t)
+    .split(/[^a-z0-9]+/)
+    .filter((p) => p.length >= 3)
+
+// Qué opciones coinciden con lo que contestó el mecánico (por voz o texto).
+function elegirCandidato(texto: string, pendiente: Aclaracion) {
+  if (pendiente.tipo === 'vehiculos') {
+    const patente = normalizarPatente(texto)
+    const porPatente = pendiente.candidatos.filter((c) =>
+      patente.includes(c.patente),
+    )
+    if (porPatente.length > 0) return porPatente
+    const dichas = palabras(texto)
+    return pendiente.candidatos.filter((c) => {
+      const propias = palabras(`${c.marca} ${c.modelo}`)
+      return dichas.some((d) => propias.includes(d))
+    })
+  }
+  const dichas = palabras(texto)
+  return pendiente.candidatos.filter((c) => {
+    const propias = palabras(c.nombre)
+    return dichas.some((d) => propias.includes(d))
+  })
+}
+
+// Guarda la pregunta (vence a los 5 minutos) y la muestra con botones.
+async function preguntar(ctx: Ctx, usuario: number, pendiente: Aclaracion) {
+  await rpc('bot_guardar_aclaracion', {
+    p_telegram_user_id: usuario,
+    p_tipo: pendiente.tipo,
+    p_orden: pendiente.orden,
+    p_candidatos: pendiente.candidatos,
+  })
+  const teclado = new InlineKeyboard()
+  if (pendiente.tipo === 'vehiculos') {
+    for (const c of pendiente.candidatos) {
+      teclado
+        .text(etiquetaCandidato(c, pendiente.candidatos), `v:${c.id}`)
+        .row()
+    }
+    await ctx.reply(
+      textoPreguntaVehiculo(
+        pendiente.orden.cliente || 'El cliente',
+        pendiente.candidatos,
+      ),
+      { reply_markup: teclado },
+    )
+  } else {
+    for (const c of pendiente.candidatos) {
+      teclado
+        .text(`${c.nombre}${c.telefono ? ` · ${c.telefono}` : ''}`, `k:${c.id}`)
+        .row()
+    }
+    await ctx.reply(textoPreguntaClientes(pendiente.candidatos.length), {
+      reply_markup: teclado,
+    })
+  }
+}
+
+// Ya se sabe cuál es el auto (patente válida): consulta o prepara la acción.
+async function ejecutarConPatente(
+  ctx: Ctx,
+  usuario: number,
+  orden: OrdenConAuto,
+  patente: string,
 ) {
+  if (orden.tipo === 'historial_vehiculo') {
+    const historial = await rpc<Historial | null>('bot_historial_vehiculo', {
+      p_telegram_user_id: usuario,
+      p_patente: patente,
+    })
+    await ctx.reply(
+      historial
+        ? textoHistorial(historial)
+        : `No encontré la patente ${patente} en el taller.`,
+    )
+    return
+  }
+  if (orden.tipo === 'buscar_vehiculo') {
+    const ficha = await rpc<FichaVehiculo | null>('bot_buscar_vehiculo', {
+      p_telegram_user_id: usuario,
+      p_patente: patente,
+    })
+    await ctx.reply(
+      ficha
+        ? textoVehiculo(ficha)
+        : `No encontré la patente ${patente} en el taller.`,
+    )
+    return
+  }
+  // Acciones que modifican: todavía no se toca nada. Se guarda la acción
+  // pendiente y se pide confirmar con botones.
+  type Preparada = Preparacion & { error?: string; estado?: string }
+  const preparada =
+    orden.tipo === 'cambiar_estado'
+      ? await rpc<Preparada>('bot_preparar_cambio_estado', {
+          p_telegram_user_id: usuario,
+          p_patente: patente,
+          p_estado: orden.estado,
+        })
+      : await rpc<Preparada>('bot_preparar_servicios', {
+          p_telegram_user_id: usuario,
+          p_patente: patente,
+          p_items: orden.renglones,
+        })
+  if (preparada.error) {
+    await ctx.reply(
+      textoErrorPreparar(preparada.error, patente, preparada.estado),
+    )
+    return
+  }
+  const teclado = new InlineKeyboard()
+    .text('✅ Confirmar', `a:ok:${preparada.accion_id}`)
+    .text('✖️ Cancelar', `a:no:${preparada.accion_id}`)
+  await ctx.reply(
+    orden.tipo === 'cambiar_estado'
+      ? textoConfirmarEstado(preparada)
+      : textoConfirmarServicios(preparada),
+    { reply_markup: teclado },
+  )
+}
+
+// Busca el auto por patente o por cliente y sigue; pregunta solo si hay dudas.
+async function resolverVehiculo(
+  ctx: Ctx,
+  usuario: number,
+  orden: OrdenConAuto,
+  clienteId?: string,
+) {
+  const dicha = orden.patente ? normalizarPatente(orden.patente) : ''
+  const patente = esPatenteValida(dicha) ? dicha : ''
+  if (!patente && !orden.cliente && !clienteId) {
+    await ctx.reply(
+      dicha
+        ? `No entendí bien la patente ("${orden.patente}"). Decime la patente de nuevo o el nombre del cliente.`
+        : '¿De qué auto? Decime la patente o el nombre del cliente.',
+    )
+    return
+  }
+  const requiereIngreso =
+    orden.tipo === 'cambiar_estado' || orden.tipo === 'agregar_servicios'
+  const r = await rpc<Resolucion>('bot_resolver_vehiculo', {
+    p_telegram_user_id: usuario,
+    p_patente: patente || null,
+    p_cliente: orden.cliente || null,
+    p_cliente_id: clienteId ?? null,
+    p_modelo: orden.modelo || null,
+    p_requiere_ingreso: requiereIngreso,
+  })
+  if (r.error) {
+    await ctx.reply(textoErrorResolver(r.error, r.cliente, patente || dicha))
+  } else if (r.tipo === 'clientes' && r.clientes) {
+    await preguntar(ctx, usuario, {
+      tipo: 'clientes',
+      orden,
+      candidatos: r.clientes,
+    })
+  } else if (r.tipo === 'aclarar' && r.candidatos) {
+    await preguntar(ctx, usuario, {
+      tipo: 'vehiculos',
+      orden: { ...orden, cliente: r.cliente ?? orden.cliente },
+      candidatos: r.candidatos,
+    })
+  } else if (r.patente) {
+    await ejecutarConPatente(ctx, usuario, orden, r.patente)
+  } else {
+    await ctx.reply('No pude encontrar el auto. Probá de nuevo.')
+  }
+}
+
+// El mecánico eligió una opción de la pregunta (con un botón o contestando).
+async function continuarAclaracion(
+  ctx: Ctx,
+  usuario: number,
+  pendiente: Aclaracion,
+  elegido: Candidato | ClienteCandidato,
+) {
+  if (pendiente.tipo === 'clientes') {
+    await resolverVehiculo(ctx, usuario, pendiente.orden, elegido.id)
+  } else {
+    await ejecutarConPatente(
+      ctx,
+      usuario,
+      pendiente.orden,
+      (elegido as Candidato).patente,
+    )
+  }
+}
+
+// ---------------------------------------------------------------------------
+
+// Interpreta el texto (que puede venir de un audio) y responde.
+async function atender(ctx: Ctx, texto: string) {
   const usuario = ctx.from!.id
   let accion = 'ninguna'
   try {
     await ctx.replyWithChatAction('typing')
+
+    // ¿Está contestando una pregunta de "¿cuál auto?" / "¿cuál cliente?"?
+    const pendiente = await rpc<Aclaracion | null>('bot_leer_aclaracion', {
+      p_telegram_user_id: usuario,
+    })
+    if (pendiente) {
+      const elegidos = elegirCandidato(texto, pendiente)
+      if (elegidos.length === 1) {
+        await rpc('bot_borrar_aclaracion', { p_telegram_user_id: usuario })
+        await continuarAclaracion(ctx, usuario, pendiente, elegidos[0])
+        await registrar(usuario, texto, 'aclaracion', 'ok')
+        return
+      }
+      const respuestaCorta = texto.trim().split(/\s+/).length <= 3
+      if (elegidos.length > 1 || respuestaCorta) {
+        // Varias coinciden (por ejemplo, dos autos del mismo modelo) o no se
+        // entendió una respuesta corta: se vuelve a preguntar.
+        await preguntar(
+          ctx,
+          usuario,
+          elegidos.length > 1
+            ? ({ ...pendiente, candidatos: elegidos } as Aclaracion)
+            : pendiente,
+        )
+        await registrar(usuario, texto, 'aclaracion', 'repregunta')
+        return
+      }
+      // Es un pedido nuevo: se descarta la pregunta anterior.
+      await rpc('bot_borrar_aclaracion', { p_telegram_user_id: usuario })
+    }
+
     const orden = await interpretar(texto)
     accion = orden.tipo
 
     if (
       orden.tipo === 'buscar_vehiculo' ||
-      orden.tipo === 'historial_vehiculo'
+      orden.tipo === 'historial_vehiculo' ||
+      orden.tipo === 'cambiar_estado' ||
+      orden.tipo === 'agregar_servicios'
     ) {
-      const patente = normalizarPatente(orden.patente)
-      if (!esPatenteValida(patente)) {
-        await ctx.reply(
-          `No entendí bien la patente ("${orden.patente}"). Decímela de nuevo, por favor.`,
-        )
-      } else {
-        if (orden.tipo === 'historial_vehiculo') {
-          const historial = await rpc<Historial | null>(
-            'bot_historial_vehiculo',
-            { p_telegram_user_id: usuario, p_patente: patente },
-          )
-          await ctx.reply(
-            historial
-              ? textoHistorial(historial)
-              : `No encontré la patente ${patente} en el taller.`,
-          )
-        } else {
-          const ficha = await rpc<FichaVehiculo | null>('bot_buscar_vehiculo', {
-            p_telegram_user_id: usuario,
-            p_patente: patente,
-          })
-          await ctx.reply(
-            ficha
-              ? textoVehiculo(ficha)
-              : `No encontré la patente ${patente} en el taller.`,
-          )
-        }
-      }
+      await resolverVehiculo(ctx, usuario, orden)
     } else if (orden.tipo === 'estado_del_taller') {
       const filas = await rpc<Parameters<typeof textoEstadoTaller>[0]>(
         'bot_estado_taller',
@@ -226,46 +454,6 @@ async function atender(
           { reply_markup: teclado },
         )
       }
-    } else if (
-      orden.tipo === 'cambiar_estado' ||
-      orden.tipo === 'agregar_servicios'
-    ) {
-      const patente = normalizarPatente(orden.patente)
-      if (!esPatenteValida(patente)) {
-        await ctx.reply(
-          `No entendí bien la patente ("${orden.patente}"). Decímela de nuevo, por favor.`,
-        )
-      } else {
-        // Todavía no se modifica nada: se guarda la acción pendiente y se pide confirmar.
-        type Preparada = Preparacion & { error?: string; estado?: string }
-        const preparada =
-          orden.tipo === 'cambiar_estado'
-            ? await rpc<Preparada>('bot_preparar_cambio_estado', {
-                p_telegram_user_id: usuario,
-                p_patente: patente,
-                p_estado: orden.estado,
-              })
-            : await rpc<Preparada>('bot_preparar_servicios', {
-                p_telegram_user_id: usuario,
-                p_patente: patente,
-                p_items: orden.renglones,
-              })
-        if (preparada.error) {
-          await ctx.reply(
-            textoErrorPreparar(preparada.error, patente, preparada.estado),
-          )
-        } else {
-          const teclado = new InlineKeyboard()
-            .text('✅ Confirmar', `a:ok:${preparada.accion_id}`)
-            .text('✖️ Cancelar', `a:no:${preparada.accion_id}`)
-          await ctx.reply(
-            orden.tipo === 'cambiar_estado'
-              ? textoConfirmarEstado(preparada)
-              : textoConfirmarServicios(preparada),
-            { reply_markup: teclado },
-          )
-        }
-      }
     } else {
       await ctx.reply(
         orden.respuesta ||
@@ -290,7 +478,7 @@ async function atender(
 }
 
 async function enviarFichaCliente(
-  ctx: Parameters<Parameters<typeof bot.on>[1]>[0],
+  ctx: Ctx,
   usuario: number,
   clienteId: string,
 ) {
@@ -302,11 +490,11 @@ async function enviarFichaCliente(
 }
 
 const AYUDA = [
-  'Mandame una nota de voz o un texto.',
+  'Mandame una nota de voz o un texto. Al auto lo nombrás por la patente o por el cliente.',
   '',
   'CONSULTAS',
-  '🚗 "Buscá la patente AB123CD"',
-  '🧾 "Qué le hicimos a la patente AB123CD" (historial)',
+  '🚗 "Buscá el auto de Juan Pérez" / "buscá la patente AB123CD"',
+  '🧾 "Qué le hicimos al auto de Juan" (historial)',
   '🔧 "Qué hay en el taller" / "cuáles están listos"',
   '📅 "Qué tengo para entregar hoy"',
   '🔔 "A quién tengo que avisar"',
@@ -314,10 +502,10 @@ const AYUDA = [
   '📋 "Qué clientes tengo" / "clientes con G"',
   '',
   'CAMBIOS (siempre te pido confirmar con un botón)',
-  '✅ "La patente AB123CD está lista" / "ya se entregó"',
-  '➕ "A la AB123CD cargale pastillas de freno, dos a veinte mil, y mano de obra doce mil"',
+  '✅ "El auto de Juan está listo" / "ya se entregó el Fiat de María"',
+  '➕ "Al auto de Juan cargale pastillas de freno, dos a veinte mil, y mano de obra doce mil"',
   '',
-  'Para cargar servicios el auto tiene que estar recibido en el taller.',
+  'Si el cliente tiene más de un auto te pregunto cuál (el modelo, o la patente si son iguales). Para cargar servicios el auto tiene que estar recibido en el taller.',
 ].join('\n')
 
 bot.command('start', (ctx) => ctx.reply(AYUDA))
@@ -355,7 +543,7 @@ bot.on('message:voice', async (ctx) => {
 
 bot.on('message:text', (ctx) => atender(ctx, ctx.message.text))
 
-// Botón para elegir entre varios clientes con el mismo nombre.
+// Botón para elegir entre varios clientes con el mismo nombre (solo consulta).
 bot.callbackQuery(/^c:([0-9a-f-]{36})$/, async (ctx) => {
   await ctx.answerCallbackQuery()
   const usuario = ctx.from.id
@@ -370,6 +558,47 @@ bot.callbackQuery(/^c:([0-9a-f-]{36})$/, async (ctx) => {
   } catch (error) {
     console.error('Error al mostrar la ficha:', error)
     await ctx.reply('No pude resolverlo. Probá de nuevo.')
+  }
+})
+
+// Botón de una pregunta de aclaración: v = qué auto, k = qué cliente.
+bot.callbackQuery(/^([vk]):([0-9a-f-]{36})$/, async (ctx) => {
+  await ctx.answerCallbackQuery()
+  const usuario = ctx.from.id
+  try {
+    const pendiente = await rpc<Aclaracion | null>('bot_leer_aclaracion', {
+      p_telegram_user_id: usuario,
+    })
+    const elegido = (
+      pendiente?.candidatos as { id: string }[] | undefined
+    )?.find((c) => c.id === ctx.match[2])
+    if (!pendiente || !elegido) {
+      await ctx.reply('Esa pregunta ya venció. Pedímelo de nuevo.')
+      return
+    }
+    await ctx
+      .editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } })
+      .catch(() => {})
+    await rpc('bot_borrar_aclaracion', { p_telegram_user_id: usuario })
+    await continuarAclaracion(
+      ctx,
+      usuario,
+      pendiente,
+      elegido as Candidato | ClienteCandidato,
+    )
+    await registrar(
+      usuario,
+      `(botón) ${ctx.match[1]} ${ctx.match[2]}`,
+      'aclaracion',
+      'ok',
+    )
+  } catch (error) {
+    console.error('Error al continuar la aclaración:', error)
+    await ctx.reply(
+      esNoAutorizado(error)
+        ? 'Tu usuario de Telegram todavía no está vinculado a la app.'
+        : 'No pude resolverlo. Probá de nuevo.',
+    )
   }
 })
 
