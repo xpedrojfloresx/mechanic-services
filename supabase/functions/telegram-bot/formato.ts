@@ -169,3 +169,167 @@ export function textoCliente(c: FichaCliente) {
   }
   return lineas.join('\n')
 }
+
+type EntregaHoy = {
+  patente: string
+  marca: string
+  modelo: string
+  cliente: string | null
+  telefono: string | null
+  estado: string
+  fecha_prometida: string
+  vencido: boolean
+}
+
+export function textoEntregasDeHoy(filas: EntregaHoy[], soloVencidos: boolean) {
+  const lista = soloVencidos ? filas.filter((f) => f.vencido) : filas
+  if (lista.length === 0) {
+    return soloVencidos
+      ? 'No tenés entregas atrasadas. 👍'
+      : 'No tenés nada prometido para hoy ni atrasado. 👍'
+  }
+  const titulo = soloVencidos
+    ? `Entregas atrasadas (${lista.length}):`
+    : `Para entregar hoy o atrasados (${lista.length}):`
+  const lineas = lista.slice(0, MAXIMO_FILAS).map((f) => {
+    let linea = `• ${f.patente} ${f.marca} ${f.modelo}`
+    if (f.cliente) linea += ` · ${f.cliente}`
+    if (f.telefono) linea += ` · ${f.telefono}`
+    linea += ` · ${estados[f.estado] ?? f.estado}`
+    linea += f.vencido
+      ? ` · ⚠️ prometido el ${fecha(f.fecha_prometida)}`
+      : ' · prometido para hoy'
+    return linea
+  })
+  if (lista.length > MAXIMO_FILAS) {
+    lineas.push(`... y ${lista.length - MAXIMO_FILAS} más`)
+  }
+  return `${titulo}\n${lineas.join('\n')}`
+}
+
+export type ParaAvisar = {
+  total: number
+  recordatorios: {
+    nota: string
+    fecha: string
+    vencido: boolean
+    patente: string
+    marca: string
+    modelo: string
+    cliente: string | null
+    telefono: string | null
+  }[]
+}
+
+export function textoParaAvisar(datos: ParaAvisar, soloVencidos: boolean) {
+  const lista = soloVencidos
+    ? datos.recordatorios.filter((r) => r.vencido)
+    : datos.recordatorios
+  if (lista.length === 0) {
+    return soloVencidos
+      ? 'No tenés recordatorios vencidos. 👍'
+      : 'No tenés a nadie para avisar por ahora. 👍'
+  }
+  const titulo = soloVencidos
+    ? `Recordatorios vencidos (${lista.length}):`
+    : `Para avisar (${datos.total}):`
+  const lineas = lista.map((r) => {
+    let linea = `• ${r.cliente ?? 'Sin cliente'}`
+    if (r.telefono) linea += ` · ${r.telefono}`
+    linea += ` · ${r.patente} ${r.marca} ${r.modelo} · ${r.nota}`
+    linea += r.vencido
+      ? ` · ⚠️ vencido el ${fecha(r.fecha)}`
+      : ` · ${fecha(r.fecha)}`
+    return linea
+  })
+  if (!soloVencidos && datos.total > lista.length) {
+    lineas.push(`... y ${datos.total - lista.length} más`)
+  }
+  return `${titulo}\n${lineas.join('\n')}`
+}
+
+export type Historial = {
+  patente: string
+  marca: string
+  modelo: string
+  cliente: string | null
+  ingresos: {
+    fecha: string
+    km: number
+    estado: string
+    motivo: string | null
+    total: number
+    trabajos: {
+      descripcion: string
+      cantidad: number
+      precio: number | null
+      tipo: string | null
+    }[]
+  }[]
+}
+
+export function textoHistorial(h: Historial) {
+  const lineas = [
+    `🧾 Historial de ${h.marca} ${h.modelo} · ${h.patente}${h.cliente ? ` (${h.cliente})` : ''}`,
+  ]
+  if (h.ingresos.length === 0) {
+    lineas.push('Todavía no tiene ingresos cargados.')
+    return lineas.join('\n')
+  }
+  for (const i of h.ingresos) {
+    lineas.push(
+      '',
+      `📅 ${fecha(i.fecha)} · ${numero.format(i.km)} km · ${estados[i.estado] ?? i.estado}`,
+    )
+    if (i.trabajos.length === 0) {
+      lineas.push(`   ${i.motivo ?? 'Sin trabajos cargados'}`)
+    } else {
+      for (const t of i.trabajos) {
+        const cant =
+          Number(t.cantidad) !== 1
+            ? ` x${numero.format(Number(t.cantidad))}`
+            : ''
+        const precio =
+          t.precio != null
+            ? ` · ${pesos(Number(t.cantidad) * Number(t.precio))}`
+            : ''
+        const tipo =
+          t.tipo === 'repuesto'
+            ? ' (repuesto)'
+            : t.tipo === 'mano_de_obra'
+              ? ' (mano de obra)'
+              : ''
+        lineas.push(`   • ${t.descripcion}${cant}${tipo}${precio}`)
+      }
+      if (Number(i.total) > 0)
+        lineas.push(`   Total: ${pesos(Number(i.total))}`)
+    }
+  }
+  return lineas.join('\n')
+}
+
+export type ListaClientes = {
+  total: number
+  clientes: { nombre: string; telefono: string | null; vehiculos: number }[]
+}
+
+export function textoListaClientes(datos: ListaClientes, prefijo: string) {
+  if (datos.total === 0) {
+    return prefijo
+      ? `No hay clientes que empiecen con "${prefijo}".`
+      : 'Todavía no hay clientes cargados.'
+  }
+  const titulo = prefijo
+    ? `Clientes que empiezan con "${prefijo}" (${datos.total}):`
+    : `Clientes cargados (${datos.total}):`
+  const lineas = datos.clientes.map((c) => {
+    const autos = c.vehiculos === 1 ? '1 auto' : `${c.vehiculos} autos`
+    return `• ${c.nombre}${c.telefono ? ` · ${c.telefono}` : ''} · ${autos}`
+  })
+  if (datos.total > datos.clientes.length) {
+    lineas.push(
+      `... y ${datos.total - datos.clientes.length} más. Decime una letra (por ejemplo "clientes con G") o el nombre de uno para ver su información.`,
+    )
+  }
+  return `${titulo}\n${lineas.join('\n')}`
+}

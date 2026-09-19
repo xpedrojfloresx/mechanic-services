@@ -1,17 +1,24 @@
 // Bot de Telegram por voz, etapa 2a: el mecánico manda una nota de voz o un
 // texto y el bot BUSCA información en la app (solo lectura): un vehículo por
-// patente, lo que hay en el taller y la ficha de un cliente. Todavía no
-// modifica nada. Diseño completo en context.md §15. Corre en una Edge Function
+// patente o su historial, lo que hay en el taller, qué entregar hoy, a quién
+// avisar y la información de los clientes. Todavía no modifica nada. Diseño completo en context.md §15. Corre en una Edge Function
 // de Supabase (Deno), con webhook; los secretos se cargan con
 // `supabase secrets set`.
 import { Bot, InlineKeyboard, webhookCallback } from 'npm:grammy'
 import { entorno, rpc } from './datos.ts'
 import {
   textoCliente,
+  textoEntregasDeHoy,
   textoEstadoTaller,
+  textoHistorial,
+  textoListaClientes,
+  textoParaAvisar,
   textoVehiculo,
   type FichaCliente,
   type FichaVehiculo,
+  type Historial,
+  type ListaClientes,
+  type ParaAvisar,
 } from './formato.ts'
 import { interpretar } from './llm.ts'
 import { esPatenteValida, normalizarPatente } from './patente.ts'
@@ -127,22 +134,37 @@ async function atender(
     const orden = await interpretar(texto)
     accion = orden.tipo
 
-    if (orden.tipo === 'buscar_vehiculo') {
+    if (
+      orden.tipo === 'buscar_vehiculo' ||
+      orden.tipo === 'historial_vehiculo'
+    ) {
       const patente = normalizarPatente(orden.patente)
       if (!esPatenteValida(patente)) {
         await ctx.reply(
           `No entendí bien la patente ("${orden.patente}"). Decímela de nuevo, por favor.`,
         )
       } else {
-        const ficha = await rpc<FichaVehiculo | null>('bot_buscar_vehiculo', {
-          p_telegram_user_id: usuario,
-          p_patente: patente,
-        })
-        await ctx.reply(
-          ficha
-            ? textoVehiculo(ficha)
-            : `No encontré la patente ${patente} en el taller.`,
-        )
+        if (orden.tipo === 'historial_vehiculo') {
+          const historial = await rpc<Historial | null>(
+            'bot_historial_vehiculo',
+            { p_telegram_user_id: usuario, p_patente: patente },
+          )
+          await ctx.reply(
+            historial
+              ? textoHistorial(historial)
+              : `No encontré la patente ${patente} en el taller.`,
+          )
+        } else {
+          const ficha = await rpc<FichaVehiculo | null>('bot_buscar_vehiculo', {
+            p_telegram_user_id: usuario,
+            p_patente: patente,
+          })
+          await ctx.reply(
+            ficha
+              ? textoVehiculo(ficha)
+              : `No encontré la patente ${patente} en el taller.`,
+          )
+        }
       }
     } else if (orden.tipo === 'estado_del_taller') {
       const filas = await rpc<Parameters<typeof textoEstadoTaller>[0]>(
@@ -150,6 +172,23 @@ async function atender(
         { p_telegram_user_id: usuario },
       )
       await ctx.reply(textoEstadoTaller(filas, orden.soloListos))
+    } else if (orden.tipo === 'entregas_de_hoy') {
+      const filas = await rpc<Parameters<typeof textoEntregasDeHoy>[0]>(
+        'bot_para_hoy',
+        { p_telegram_user_id: usuario },
+      )
+      await ctx.reply(textoEntregasDeHoy(filas, orden.soloVencidos))
+    } else if (orden.tipo === 'recordatorios_para_avisar') {
+      const datos = await rpc<ParaAvisar>('bot_para_avisar', {
+        p_telegram_user_id: usuario,
+      })
+      await ctx.reply(textoParaAvisar(datos, orden.soloVencidos))
+    } else if (orden.tipo === 'listar_clientes') {
+      const datos = await rpc<ListaClientes>('bot_listar_clientes', {
+        p_telegram_user_id: usuario,
+        p_prefijo: orden.prefijo || null,
+      })
+      await ctx.reply(textoListaClientes(datos, orden.prefijo))
     } else if (orden.tipo === 'buscar_cliente') {
       const clientes = await rpc<
         { id: string; nombre: string; telefono: string | null }[]
@@ -183,7 +222,7 @@ async function atender(
     } else {
       await ctx.reply(
         orden.respuesta ||
-          'Por ahora puedo buscar un vehículo por patente, decirte qué hay en el taller y buscar la información de un cliente.',
+          'Por ahora solo puedo consultar. Mandame /ayuda para ver ejemplos.',
       )
     }
     await registrar(usuario, texto, accion, 'ok')
@@ -215,11 +254,22 @@ async function enviarFichaCliente(
   await ctx.reply(ficha ? textoCliente(ficha) : 'No encontré ese cliente.')
 }
 
-bot.command('start', (ctx) =>
-  ctx.reply(
-    'Listo. Mandame una nota de voz o un texto. Por ejemplo: "buscá la patente AB123CD", "qué hay en el taller" o "qué datos tenés de Juan Pérez".',
-  ),
-)
+const AYUDA = [
+  'Mandame una nota de voz o un texto. Puedo consultar:',
+  '',
+  '🚗 "Buscá la patente AB123CD"',
+  '🧾 "Qué le hicimos a la patente AB123CD" (historial)',
+  '🔧 "Qué hay en el taller" / "cuáles están listos"',
+  '📅 "Qué tengo para entregar hoy"',
+  '🔔 "A quién tengo que avisar"',
+  '👤 "Qué datos tenés de Juan Pérez"',
+  '📋 "Qué clientes tengo" / "clientes con G"',
+  '',
+  'Por ahora solo consulto: todavía no modifico nada.',
+].join('\n')
+
+bot.command('start', (ctx) => ctx.reply(AYUDA))
+bot.command('ayuda', (ctx) => ctx.reply(AYUDA))
 
 bot.on('message:voice', async (ctx) => {
   if (ctx.message.voice.duration > SEGUNDOS_MAXIMOS) {
