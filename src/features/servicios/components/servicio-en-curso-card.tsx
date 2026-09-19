@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Patente } from '@/components/patente'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { PrometidoPara } from '@/features/servicios/components/prometido-para'
 import {
   useActualizarServicio,
   useCerrarServicios,
@@ -120,23 +121,31 @@ export function ServicioEnCursoCard({ servicio }: { servicio: Servicio }) {
           preguntar && 'pb-4',
         )}
       >
-        <Link to={`/servicios/${servicio.id}`} className="min-w-0 flex-1">
-          <p className="truncate font-medium">{v?.clientes?.nombre}</p>
-          <p className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
-            <Patente size="sm">{v?.patente}</Patente>
-            {v?.marca} {v?.modelo}
-          </p>
-          <p className="text-muted-foreground line-clamp-2 text-xs">
-            {haceCuanto(servicio.fecha_ingreso)}
-            {servicio.motivo_ingreso && ` · ${servicio.motivo_ingreso}`} ·{' '}
-            <Badge variant="outline">{etiquetaEstado(servicio.estado)}</Badge>
-          </p>
-          {error && (
-            <p className="text-destructive text-xs">
-              No pudimos guardar el cambio. Probá de nuevo.
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <Link to={`/servicios/${servicio.id}`}>
+            <p className="truncate font-medium">{v?.clientes?.nombre}</p>
+            <p className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
+              <Patente size="sm">{v?.patente}</Patente>
+              {v?.marca} {v?.modelo}
             </p>
-          )}
-        </Link>
+            <p className="text-muted-foreground line-clamp-2 text-xs">
+              {haceCuanto(servicio.fecha_ingreso)}
+              {servicio.motivo_ingreso &&
+                ` · ${servicio.motivo_ingreso}`} ·{' '}
+              <Badge variant="outline">{etiquetaEstado(servicio.estado)}</Badge>
+            </p>
+            {error && (
+              <p className="text-destructive text-xs">
+                No pudimos guardar el cambio. Probá de nuevo.
+              </p>
+            )}
+          </Link>
+          <PrometidoPara
+            servicioId={servicio.id}
+            fecha={servicio.fecha_prometida}
+            estado={servicio.estado}
+          />
+        </div>
         {!ofrecerAviso && (
           <BotonWhatsApp
             soloIcono

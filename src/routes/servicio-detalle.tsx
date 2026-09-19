@@ -22,6 +22,7 @@ import {
   useServicio,
 } from '@/features/servicios/api'
 import { ESTADOS, valoresCambioEstado } from '@/features/servicios/estados'
+import { PrometidoPara } from '@/features/servicios/components/prometido-para'
 import { ItemsSection } from '@/features/servicios/components/items-section'
 import { proponerProximoServicio } from '@/features/recordatorios/proponer-proximo'
 import { ProximosServicios } from '@/features/recordatorios/components/proximos-servicios'
@@ -171,6 +172,13 @@ export function ServicioDetallePage() {
               ))}
             </div>
           </div>
+          {servicio.estado !== 'entregado' && (
+            <PrometidoPara
+              servicioId={servicio.id}
+              fecha={servicio.fecha_prometida}
+              estado={servicio.estado}
+            />
+          )}
           <div>
             <BotonWhatsApp
               telefono={cliente?.telefono}

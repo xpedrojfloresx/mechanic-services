@@ -183,6 +183,7 @@ export type Database = {
           estado_al_ingreso: string | null
           fecha_entrega: string | null
           fecha_ingreso: string
+          fecha_prometida: string | null
           id: string
           km_al_ingreso: number
           motivo_ingreso: string | null
@@ -198,6 +199,7 @@ export type Database = {
           estado_al_ingreso?: string | null
           fecha_entrega?: string | null
           fecha_ingreso?: string
+          fecha_prometida?: string | null
           id?: string
           km_al_ingreso: number
           motivo_ingreso?: string | null
@@ -213,6 +215,7 @@ export type Database = {
           estado_al_ingreso?: string | null
           fecha_entrega?: string | null
           fecha_ingreso?: string
+          fecha_prometida?: string | null
           id?: string
           km_al_ingreso?: number
           motivo_ingreso?: string | null

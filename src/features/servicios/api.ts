@@ -133,11 +133,13 @@ export function useServicios(estado: Estado | 'todos' | 'en_curso') {
         .order('created_at', { ascending: false })
         .limit(200)
       if (estado === 'en_curso') {
-        // En el taller ahora: lo más viejo primero
+        // En el taller ahora: primero lo que vence antes (lo prometido), sin
+        // fecha prometida después; en cada grupo, lo más viejo primero.
         consulta = supabase
           .from('servicios')
           .select(SELECT_CON_VEHICULO)
           .in('estado', ['en_taller', 'listo'])
+          .order('fecha_prometida', { ascending: true, nullsFirst: false })
           .order('fecha_ingreso', { ascending: true })
           .order('created_at', { ascending: true })
           .limit(200)
