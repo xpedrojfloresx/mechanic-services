@@ -33,8 +33,8 @@ export function VehiculoDetallePage() {
         <CardHeader className="flex-row items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-xl">
             <Patente size="md">{vehiculo.patente}</Patente>
-            <MarcaLogo marca={vehiculo.marca} />
             {vehiculo.marca} {vehiculo.modelo}
+            <MarcaLogo marca={vehiculo.marca} />
           </CardTitle>
           <Button asChild variant="outline" size="sm">
             <Link to={`/vehiculos/${vehiculo.id}/editar`}>Editar</Link>
