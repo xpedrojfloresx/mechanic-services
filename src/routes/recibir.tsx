@@ -10,6 +10,7 @@ import { ClientePicker } from '@/features/clientes/components/cliente-picker'
 import { ClienteNuevoForm } from '@/features/clientes/components/cliente-nuevo-form'
 import {
   useCerrarServicios,
+  useItems,
   useServiciosDeVehiculo,
 } from '@/features/servicios/api'
 import { IngresoForm } from '@/features/servicios/components/ingreso-form'
@@ -93,6 +94,12 @@ function Recepcion(props: { patente: string; onCambiar: () => void }) {
   } = useVehiculoPorPatente(props.patente)
   const { data: servicios } = useServiciosDeVehiculo(vehiculo?.id)
   const ultimo = servicios?.[0]
+  const { data: itemsUltimo } = useItems(ultimo?.id)
+  // Qué se le hizo la última vez: los servicios realizados o, si no hay, el motivo.
+  const ultimoTrabajo =
+    itemsUltimo && itemsUltimo.length > 0
+      ? itemsUltimo.map((i) => i.descripcion).join(', ')
+      : ultimo?.motivo_ingreso
 
   return (
     <div className="flex flex-col gap-4">
@@ -122,6 +129,14 @@ function Recepcion(props: { patente: string; onCambiar: () => void }) {
                 {ultimo &&
                   ` · Último ingreso: ${ultimo.km_al_ingreso.toLocaleString('es-AR')} km (${formatearFecha(ultimo.fecha_ingreso)})`}
               </p>
+              {ultimoTrabajo && (
+                <p className="line-clamp-2">
+                  <span className="text-muted-foreground">
+                    Último trabajo:{' '}
+                  </span>
+                  {ultimoTrabajo}
+                </p>
+              )}
             </CardContent>
           </Card>
           {servicios ? (

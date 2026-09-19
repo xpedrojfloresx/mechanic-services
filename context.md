@@ -53,6 +53,8 @@
 
 **"Prometido para"** (2026-09-19, idea de `mecanico-ux` aprobada por Pedro; hecha por Claude, falta prueba de Pedro): migración 8 `20260919000008_fecha_prometida.sql` (columna `servicios.fecha_prometida date`, opcional, ya aplicada con `db push` y tipos regenerados; **solo día, sin hora**). Botón "¿Para cuándo?" / "Prometido: mañana" en la tarjeta de "En el taller ahora" y en la ficha del servicio (mientras no esté Entregado): atajos Hoy / Mañana / En 2 días, fecha a elección y Quitar. Vencido y sin entregar se marca en ámbar. La lista "En el taller ahora" ordena primero por fecha prometida (sin fecha al final) y después por antigüedad. Código: `features/servicios/prometido.ts`, `components/prometido-para.tsx`, `sumarDias` en `features/recordatorios/fechas.ts`. No se pide al recibir el auto (a propósito, modo ágil). Migraciones aplicadas ahora: 8.
 
+**"Último trabajo" al recibir** (2026-09-19, idea de `mecanico-ux` aprobada por Pedro; hecha por Claude, falta prueba de Pedro): en `/recibir`, cuando la patente ya existe, la tarjeta suma "Último trabajo: ..." con los servicios realizados del último ingreso o, si no hay, su motivo de ingreso (máx. 2 líneas; no se muestra si no hay nada). Solo el último trabajo, a pedido de Pedro; ampliar a 2 o 3 si queda corto. Sin cambios en la base.
+
 **Extras hechos a pedido de Pedro** (no son fases del plan): dashboard con menú lateral; insights con gráficos; teléfono AR/CL; eliminar clientes; ingreso del vehículo (motivo, estado al llegar); rediseño del flujo ("Recibir vehículo" por patente); buscador global; servicios múltiples por ingreso; avisos de "¿ya se entregó?"; modo ágil; cambiar de dueño; botón de WhatsApp; rediseño visual (sin animaciones).
 
 ## 3. Mapa de la app (rutas y pantallas)
