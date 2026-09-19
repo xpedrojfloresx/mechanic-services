@@ -23,6 +23,7 @@ import {
 } from '@/features/servicios/api'
 import { ESTADOS, valoresCambioEstado } from '@/features/servicios/estados'
 import { ItemsSection } from '@/features/servicios/components/items-section'
+import { proponerProximoServicio } from '@/features/recordatorios/proponer-proximo'
 import { ProximosServicios } from '@/features/recordatorios/components/proximos-servicios'
 import { useTallerActual } from '@/features/auth/hooks/use-taller-actual'
 import { BotonWhatsApp } from '@/features/whatsapp/components/boton-whatsapp'
@@ -57,6 +58,13 @@ export function ServicioDetallePage() {
         id: servicio.id,
         values: valoresCambioEstado(estado, servicio.fecha_entrega),
       })
+      if (estado === 'entregado') {
+        proponerProximoServicio({
+          servicioId: servicio.id,
+          vehiculoId: servicio.vehiculo_id,
+          auto: `${vehiculo?.marca ?? ''} ${vehiculo?.modelo ?? ''} ${vehiculo?.patente ?? ''}`.trim(),
+        })
+      }
     } catch (e) {
       console.error('Error al cambiar el estado:', e)
       setError('No pudimos cambiar el estado. Probá de nuevo.')

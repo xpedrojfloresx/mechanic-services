@@ -27,6 +27,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { useAuth } from '@/features/auth/auth-context'
 import { useTallerActual } from '@/features/auth/hooks/use-taller-actual'
 import { BuscadorGlobal } from '@/features/busqueda/components/buscador-global'
+import { ProponerProximoServicio } from '@/features/recordatorios/components/proponer-proximo-servicio'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
@@ -160,6 +161,7 @@ export function AppLayout() {
           </div>
         </SidebarInset>
         <BarraInferior />
+        <ProponerProximoServicio />
       </SidebarProvider>
     </TooltipProvider>
   )

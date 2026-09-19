@@ -16,6 +16,7 @@ import {
   valoresCambioEstado,
 } from '@/features/servicios/estados'
 import { useTallerActual } from '@/features/auth/hooks/use-taller-actual'
+import { proponerProximoServicio } from '@/features/recordatorios/proponer-proximo'
 import { BotonWhatsApp } from '@/features/whatsapp/components/boton-whatsapp'
 import { enlaceWhatsApp, mensajeServicio } from '@/features/whatsapp/whatsapp'
 import { diasDesde, haceCuanto } from '@/lib/formato'
@@ -75,6 +76,15 @@ export function ServicioEnCursoCard({ servicio }: { servicio: Servicio }) {
     }
   }
 
+  function ofrecerProximo() {
+    if (!servicio.vehiculo_id) return
+    proponerProximoServicio({
+      servicioId: servicio.id,
+      vehiculoId: servicio.vehiculo_id,
+      auto: `${v?.marca ?? ''} ${v?.modelo ?? ''} ${v?.patente ?? ''}`.trim(),
+    })
+  }
+
   async function avanzar() {
     if (!siguiente) return
     setError(false)
@@ -83,6 +93,7 @@ export function ServicioEnCursoCard({ servicio }: { servicio: Servicio }) {
         id: servicio.id,
         values: valoresCambioEstado(siguiente.valor, servicio.fecha_entrega),
       })
+      if (siguiente.valor === 'entregado') ofrecerProximo()
     } catch (e) {
       console.error('Error al avanzar el estado:', e)
       setError(true)
@@ -93,6 +104,7 @@ export function ServicioEnCursoCard({ servicio }: { servicio: Servicio }) {
     setError(false)
     try {
       await cerrar.mutateAsync([servicio.id])
+      ofrecerProximo()
     } catch (e) {
       console.error('Error al marcar como entregado:', e)
       setError(true)
