@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, X } from 'lucide-react'
 import { useState } from 'react'
-import { useFieldArray, useForm } from 'react-hook-form'
+import { Controller, useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { FormField } from '@/components/form-field'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useUsuarioActual } from '@/features/auth/hooks/use-usuario-actual'
 import { useGuardarItems } from '@/features/servicios/api'
+import { TipoItemSelector } from '@/features/servicios/components/tipo-item-selector'
 import { itemAInput, itemSchema, itemVacio } from '@/features/servicios/schema'
 
 const schema = z.object({ servicios: z.array(itemSchema).min(1) })
@@ -93,6 +94,16 @@ export function AgregarServiciosForm({
                   </Button>
                 )}
               </div>
+              <Controller
+                control={control}
+                name={`servicios.${i}.tipo`}
+                render={({ field }) => (
+                  <TipoItemSelector
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
               <FormField
                 id={`servicio-${i}-descripcion`}
                 label="¿Qué se hizo?"

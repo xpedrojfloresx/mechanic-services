@@ -10,9 +10,31 @@ import {
 } from '@/features/servicios/api'
 import { AgregarServiciosForm } from '@/features/servicios/components/agregar-servicios-form'
 import { ItemForm } from '@/features/servicios/components/item-form'
+import { Badge } from '@/components/ui/badge'
+import { desgloseItems, etiquetaTipo } from '@/features/servicios/items'
+import { BotonWhatsApp } from '@/features/whatsapp/components/boton-whatsapp'
+import { mensajeDetalle } from '@/features/whatsapp/whatsapp'
 import { formatoNumero } from '@/lib/formato'
 
-export function ItemsSection({ servicioId }: { servicioId: string }) {
+type Contacto = {
+  telefono: string | null | undefined
+  datos: {
+    nombre: string
+    marca: string
+    modelo: string
+    patente: string
+    taller: string
+  }
+}
+
+// contacto: a quién y con qué datos se le puede mandar el detalle por WhatsApp.
+export function ItemsSection({
+  servicioId,
+  contacto,
+}: {
+  servicioId: string
+  contacto?: Contacto
+}) {
   const { data: usuario } = useUsuarioActual()
   const { data: items, isLoading } = useItems(servicioId)
   const guardar = useGuardarItem(usuario?.taller_id)
@@ -22,11 +44,7 @@ export function ItemsSection({ servicioId }: { servicioId: string }) {
   // Sin servicios cargados el formulario ya viene abierto.
   const mostrarFormulario = agregando || (!isLoading && items?.length === 0)
 
-  const total = (items ?? []).reduce(
-    (suma, i) => suma + i.cantidad * (i.precio ?? 0),
-    0,
-  )
-  const hayPrecios = (items ?? []).some((i) => i.precio != null)
+  const desglose = desgloseItems(items ?? [])
 
   return (
     <section className="flex flex-col gap-3">
@@ -63,7 +81,10 @@ export function ItemsSection({ servicioId }: { servicioId: string }) {
           <Card key={i.id}>
             <CardContent className="flex items-center justify-between gap-2 text-sm">
               <div>
-                <p className="font-medium">{i.descripcion}</p>
+                <p className="flex flex-wrap items-center gap-2 font-medium">
+                  {i.descripcion}
+                  <Badge variant="outline">{etiquetaTipo(i.tipo)}</Badge>
+                </p>
                 <p className="text-muted-foreground">
                   {formatoNumero.format(i.cantidad)}
                   {i.precio != null &&
@@ -93,10 +114,38 @@ export function ItemsSection({ servicioId }: { servicioId: string }) {
         ),
       )}
 
-      {hayPrecios && (
-        <p className="text-right font-semibold">
-          Total: {formatoNumero.format(total)}
-        </p>
+      {desglose.hayPrecios && (
+        <Card>
+          <CardContent className="flex flex-col gap-1 text-sm">
+            <FilaCuenta
+              texto="Repuestos"
+              valor={desglose.subtotalRepuestos}
+              mostrar={desglose.repuestos.length > 0}
+            />
+            <FilaCuenta
+              texto="Mano de obra"
+              valor={desglose.subtotalManoDeObra}
+              mostrar={desglose.manoDeObra.length > 0}
+            />
+            <FilaCuenta
+              texto="Sin clasificar"
+              valor={desglose.subtotalSinClasificar}
+              mostrar={desglose.sinClasificar.length > 0}
+            />
+            <div className="mt-1 flex items-center justify-between border-t pt-2 text-base font-semibold">
+              <span>Total</span>
+              <span>$ {formatoNumero.format(desglose.total)}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {contacto && items && items.length > 0 && (
+        <BotonWhatsApp
+          telefono={contacto.telefono}
+          mensaje={mensajeDetalle(contacto.datos, items)}
+          texto="Enviar detalle al cliente"
+        />
       )}
 
       {mostrarFormulario ? (
@@ -111,5 +160,15 @@ export function ItemsSection({ servicioId }: { servicioId: string }) {
         </Button>
       )}
     </section>
+  )
+}
+
+function FilaCuenta(props: { texto: string; valor: number; mostrar: boolean }) {
+  if (!props.mostrar) return null
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-muted-foreground">{props.texto}</span>
+      <span>$ {formatoNumero.format(props.valor)}</span>
+    </div>
   )
 }

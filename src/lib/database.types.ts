@@ -140,6 +140,7 @@ export type Database = {
           precio: number | null
           servicio_id: string
           taller_id: string
+          tipo: string | null
         }
         Insert: {
           cantidad?: number
@@ -149,6 +150,7 @@ export type Database = {
           precio?: number | null
           servicio_id: string
           taller_id: string
+          tipo?: string | null
         }
         Update: {
           cantidad?: number
@@ -158,6 +160,7 @@ export type Database = {
           precio?: number | null
           servicio_id?: string
           taller_id?: string
+          tipo?: string | null
         }
         Relationships: [
           {

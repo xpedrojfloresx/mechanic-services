@@ -66,6 +66,7 @@ export function ingresoAInput(v: IngresoValues) {
 export const aNumero = (v: string) => Number(v.trim().replace(',', '.'))
 
 export const itemSchema = z.object({
+  tipo: z.enum(['repuesto', 'mano_de_obra']),
   descripcion: z.string().trim().min(1, 'Ingresá qué se hizo'),
   cantidad: z
     .string()
@@ -77,7 +78,9 @@ export const itemSchema = z.object({
 
 export type ItemValues = z.infer<typeof itemSchema>
 
+// tipo: el renglón nuevo arranca como repuesto (se cambia con un toque).
 export const itemVacio = (): ItemValues => ({
+  tipo: 'repuesto',
   descripcion: '',
   cantidad: '1',
   precio: '',
@@ -85,6 +88,7 @@ export const itemVacio = (): ItemValues => ({
 
 export function itemAInput(v: ItemValues) {
   return {
+    tipo: v.tipo,
     descripcion: v.descripcion.trim(),
     cantidad: aNumero(v.cantidad),
     precio: v.precio.trim() === '' ? null : aNumero(v.precio),

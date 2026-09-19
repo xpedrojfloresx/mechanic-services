@@ -1,3 +1,4 @@
+import { desgloseItems } from '@/features/servicios/items'
 import { formatoNumero } from '@/lib/formato'
 
 // Convierte el teléfono guardado (solo dígitos, formatos de Argentina o
@@ -40,21 +41,57 @@ export function mensajeGeneral(d: Datos) {
   return `Hola ${primerNombre(d.nombre)}, te escribimos de ${d.taller} por tu ${d.marca} ${d.modelo} (${d.patente}).`
 }
 
-type Renglon = { descripcion: string; cantidad: number; precio: number | null }
+type Renglon = {
+  descripcion: string
+  cantidad: number
+  precio: number | null
+  tipo?: string | null
+}
 
+function linea(i: Renglon) {
+  const cant = i.cantidad !== 1 ? ` x${formatoNumero.format(i.cantidad)}` : ''
+  const precio =
+    i.precio != null ? ` - $${formatoNumero.format(i.cantidad * i.precio)}` : ''
+  return `- ${i.descripcion}${cant}${precio}`
+}
+
+// Detalle del trabajo agrupado en repuestos y mano de obra (lo que no tiene tipo
+// va como "Servicios"), con subtotales si hay más de un grupo y el total.
 function resumen(items: Renglon[]) {
   if (items.length === 0) return ''
-  const lineas = items.map((i) => {
-    const cant = i.cantidad !== 1 ? ` x${formatoNumero.format(i.cantidad)}` : ''
-    const precio =
-      i.precio != null
-        ? ` - $${formatoNumero.format(i.cantidad * i.precio)}`
-        : ''
-    return `- ${i.descripcion}${cant}${precio}`
+  const d = desgloseItems(items)
+  const grupos = [
+    { titulo: 'Repuestos', lista: d.repuestos, subtotal: d.subtotalRepuestos },
+    {
+      titulo: 'Mano de obra',
+      lista: d.manoDeObra,
+      subtotal: d.subtotalManoDeObra,
+    },
+    {
+      titulo: 'Servicios',
+      lista: d.sinClasificar,
+      subtotal: d.subtotalSinClasificar,
+    },
+  ].filter((g) => g.lista.length > 0)
+  const conSubtotal = d.hayPrecios && grupos.length > 1
+  const bloques = grupos.map((g) => {
+    const lineas = g.lista.map(linea).join('\n')
+    const subtotal = conSubtotal
+      ? `\nSubtotal: $${formatoNumero.format(g.subtotal)}`
+      : ''
+    return `${g.titulo}:\n${lineas}${subtotal}`
   })
-  const hayPrecios = items.some((i) => i.precio != null)
-  const total = items.reduce((s, i) => s + i.cantidad * (i.precio ?? 0), 0)
-  return `\n\nServicios:\n${lineas.join('\n')}${hayPrecios ? `\n\nTotal: $${formatoNumero.format(total)}` : ''}`
+  const total = d.hayPrecios
+    ? `\n\nTotal: $${formatoNumero.format(d.total)}`
+    : ''
+  return `\n\n${bloques.join('\n\n')}${total}`
+}
+
+// Detalle del trabajo para mandarle al cliente cuando se quiera (sin importar
+// el estado del servicio).
+export function mensajeDetalle(d: Datos, items: Renglon[]) {
+  const auto = `${d.marca} ${d.modelo} (${d.patente})`
+  return `Hola ${primerNombre(d.nombre)}, te paso el detalle del trabajo de tu ${auto} en ${d.taller}.${resumen(items)}`
 }
 
 // Mensaje según cómo va el trabajo.

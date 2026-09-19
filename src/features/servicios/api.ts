@@ -212,6 +212,7 @@ export function useEliminarServicio() {
 }
 
 export type ItemInput = {
+  tipo: 'repuesto' | 'mano_de_obra'
   descripcion: string
   cantidad: number
   precio: number | null

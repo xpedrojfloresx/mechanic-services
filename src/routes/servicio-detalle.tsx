@@ -199,7 +199,19 @@ export function ServicioDetallePage() {
         </CardContent>
       </Card>
 
-      <ItemsSection servicioId={servicio.id} />
+      <ItemsSection
+        servicioId={servicio.id}
+        contacto={{
+          telefono: cliente?.telefono,
+          datos: {
+            nombre: cliente?.nombre ?? '',
+            marca: vehiculo?.marca ?? '',
+            modelo: vehiculo?.modelo ?? '',
+            patente: vehiculo?.patente ?? '',
+            taller: taller?.nombre ?? 'el taller',
+          },
+        }}
+      />
 
       <ProximosServicios
         vehiculoId={servicio.vehiculo_id}

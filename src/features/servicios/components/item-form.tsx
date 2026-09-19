@@ -1,8 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { TipoItemSelector } from '@/features/servicios/components/tipo-item-selector'
 import type { ItemInput } from '@/features/servicios/api'
 import {
   itemAInput,
@@ -24,12 +25,14 @@ export function ItemForm({ item, onGuardar, onCancelar }: ItemFormProps) {
   const [error, setError] = useState<string | null>(null)
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(itemSchema),
     defaultValues: {
+      tipo: item?.tipo === 'mano_de_obra' ? 'mano_de_obra' : 'repuesto',
       descripcion: item?.descripcion ?? '',
       cantidad: item ? String(item.cantidad) : '1',
       precio: item?.precio != null ? String(item.precio) : '',
@@ -58,10 +61,21 @@ export function ItemForm({ item, onGuardar, onCancelar }: ItemFormProps) {
       className="flex flex-col gap-2"
       noValidate
     >
+      <Controller
+        control={control}
+        name="tipo"
+        render={({ field }) => (
+          <TipoItemSelector
+            size="sm"
+            value={field.value}
+            onChange={field.onChange}
+          />
+        )}
+      />
       <div className="grid grid-cols-[1fr_5rem_7rem] gap-2">
         <Input
           aria-label="Descripción"
-          placeholder="Repuesto o mano de obra"
+          placeholder="¿Qué se hizo o se usó?"
           autoComplete="off"
           {...register('descripcion')}
         />
