@@ -126,7 +126,7 @@ export function InsightsPage() {
       {isLoading && <Skeleton className="h-64 w-full" />}
 
       {data && (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <TrabajosComunes servicios={delPeriodo} />
           <MarcasDona servicios={delPeriodo} />
           {mostrarMontos && <FacturacionMensual servicios={data} />}
