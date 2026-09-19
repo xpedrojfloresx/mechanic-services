@@ -17,11 +17,23 @@ import {
 } from '@/features/servicios/estados'
 import { useTallerActual } from '@/features/auth/hooks/use-taller-actual'
 import { BotonWhatsApp } from '@/features/whatsapp/components/boton-whatsapp'
-import { mensajeServicio } from '@/features/whatsapp/whatsapp'
+import { enlaceWhatsApp, mensajeServicio } from '@/features/whatsapp/whatsapp'
 import { diasDesde, haceCuanto } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 
 type Servicio = NonNullable<ReturnType<typeof useServicios>['data']>[number]
+
+// Recordar en este celular a quién ya se le avisó que el auto está listo (no se
+// guarda en la base: es solo un recordatorio para no ofrecer el aviso dos veces).
+const claveAvisado = (id: string) => `avisado-listo:${id}`
+
+function yaSeAvisoListo(id: string) {
+  try {
+    return localStorage.getItem(claveAvisado(id)) === '1'
+  } catch {
+    return false
+  }
+}
 
 // Tarjeta de un auto que está en el taller: toca para ver el detalle, o
 // avanza el estado con un solo botón (En taller -> Listo -> Entregado).
@@ -33,10 +45,35 @@ export function ServicioEnCursoCard({ servicio }: { servicio: Servicio }) {
   const { data: taller } = useTallerActual()
   const [error, setError] = useState(false)
   const [sigueAca, setSigueAca] = useState(false)
+  const [avisado, setAvisado] = useState(() => yaSeAvisoListo(servicio.id))
   const siguiente = siguienteEstado(servicio.estado)
   const v = servicio.vehiculos
   const dias = diasDesde(servicio.fecha_ingreso)
   const preguntar = !sigueAca && estaDemorado(servicio.estado, dias)
+  const mensaje = mensajeServicio(
+    {
+      nombre: v?.clientes?.nombre ?? '',
+      marca: v?.marca ?? '',
+      modelo: v?.modelo ?? '',
+      patente: v?.patente ?? '',
+      taller: taller?.nombre ?? 'el taller',
+    },
+    servicio.estado,
+  )
+  // Cuando queda listo y todavía no se avisó, el aviso pasa a ser el botón grande.
+  const ofrecerAviso =
+    servicio.estado === 'listo' &&
+    !avisado &&
+    enlaceWhatsApp(v?.clientes?.telefono ?? null, mensaje) !== null
+
+  function marcarAvisado() {
+    setAvisado(true)
+    try {
+      localStorage.setItem(claveAvisado(servicio.id), '1')
+    } catch {
+      // Sin almacenamiento: el botón vuelve a aparecer, no pasa nada grave.
+    }
+  }
 
   async function avanzar() {
     if (!siguiente) return
@@ -87,21 +124,14 @@ export function ServicioEnCursoCard({ servicio }: { servicio: Servicio }) {
             </p>
           )}
         </Link>
-        <BotonWhatsApp
-          soloIcono
-          variant="ghost"
-          telefono={v?.clientes?.telefono}
-          mensaje={mensajeServicio(
-            {
-              nombre: v?.clientes?.nombre ?? '',
-              marca: v?.marca ?? '',
-              modelo: v?.modelo ?? '',
-              patente: v?.patente ?? '',
-              taller: taller?.nombre ?? 'el taller',
-            },
-            servicio.estado,
-          )}
-        />
+        {!ofrecerAviso && (
+          <BotonWhatsApp
+            soloIcono
+            variant="ghost"
+            telefono={v?.clientes?.telefono}
+            mensaje={mensaje}
+          />
+        )}
         {siguiente && (
           <Button
             size="sm"
@@ -112,6 +142,19 @@ export function ServicioEnCursoCard({ servicio }: { servicio: Servicio }) {
           </Button>
         )}
       </CardContent>
+
+      {ofrecerAviso && (
+        <div className={cn('px-4', preguntar && 'pb-4')}>
+          <BotonWhatsApp
+            variant="default"
+            className="h-11 w-full text-base"
+            telefono={v?.clientes?.telefono}
+            mensaje={mensaje}
+            texto="Avisar que está listo"
+            onClick={marcarAvisado}
+          />
+        </div>
+      )}
 
       {preguntar && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-amber-500/10 px-4 py-3 text-sm">

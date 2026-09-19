@@ -46,6 +46,8 @@
 
 **Logo de marca en la ficha del cliente** (2026-09-18, pedido de Pedro; hecho por Claude, falta prueba de Pedro): `src/features/vehiculos/components/marca-logo.tsx` con `simple-icons` (devDependency, imports por nombre) para ~30 marcas; la marca es texto libre, se normaliza (minúsculas, sin acentos) y acepta "VW"/"Chevy". Sin logo en simple-icons (Mercedes-Benz, Chery, Dodge, Land Rover, Jaguar, Lexus, Alfa Romeo, BYD, Geely, Isuzu, Kawasaki, etc.) o marca desconocida: ícono de auto genérico. En la ficha del cliente y en la ficha del vehículo (no en tarjetas de servicio). Suma ~38 kB gzip al bundle.
 
+**Aviso "Avisar que está listo"** (2026-09-19, idea de la skill `mecanico-ux`, aprobada por Pedro; hecha por Claude, falta prueba de Pedro): en `servicio-en-curso-card.tsx`, cuando un servicio está en Listo, el cliente tiene teléfono válido y todavía no se avisó, aparece una franja con el botón grande "Avisar que está listo" (abre WhatsApp con el mensaje ya armado) y se oculta el ícono chico. Lo "ya avisado" se guarda solo en `localStorage` del celu (`avisado-listo:<id>`), sin migración: no se comparte entre dispositivos. `BotonWhatsApp` ahora acepta `className` y `onClick`. Skill nueva instalada: `.claude/skills/mecanico-ux` (no commiteada).
+
 **Extras hechos a pedido de Pedro** (no son fases del plan): dashboard con menú lateral; insights con gráficos; teléfono AR/CL; eliminar clientes; ingreso del vehículo (motivo, estado al llegar); rediseño del flujo ("Recibir vehículo" por patente); buscador global; servicios múltiples por ingreso; avisos de "¿ya se entregó?"; modo ágil; cambiar de dueño; botón de WhatsApp; rediseño visual (sin animaciones).
 
 ## 3. Mapa de la app (rutas y pantallas)

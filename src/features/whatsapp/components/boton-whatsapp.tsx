@@ -9,6 +9,9 @@ type BotonWhatsAppProps = {
   // Solo el ícono (para tarjetas chicas). Sin teléfono válido no se muestra.
   soloIcono?: boolean
   variant?: 'default' | 'outline' | 'ghost'
+  className?: string
+  // Se llama al tocar el botón (el enlace se abre igual).
+  onClick?: () => void
 }
 
 // Abre WhatsApp (wa.me) con el mensaje ya armado; la persona lo revisa y lo
@@ -19,6 +22,8 @@ export function BotonWhatsApp({
   texto = 'Avisar por WhatsApp',
   soloIcono = false,
   variant = 'outline',
+  className,
+  onClick,
 }: BotonWhatsAppProps) {
   const enlace = enlaceWhatsApp(telefono ?? null, mensaje)
 
@@ -37,8 +42,19 @@ export function BotonWhatsApp({
   }
 
   return (
-    <Button asChild variant={variant} size="sm" aria-label={texto}>
-      <a href={enlace} target="_blank" rel="noopener noreferrer">
+    <Button
+      asChild
+      variant={variant}
+      size="sm"
+      aria-label={texto}
+      className={className}
+    >
+      <a
+        href={enlace}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={onClick}
+      >
         <MessageCircle /> {!soloIcono && texto}
       </a>
     </Button>
